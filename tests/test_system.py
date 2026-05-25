@@ -33,7 +33,7 @@ class TestPipelineExecution:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=90,
         )
         assert result.returncode == 0, f"Pipeline failed:\n{result.stderr}"
 
@@ -43,7 +43,7 @@ class TestPipelineExecution:
             [sys.executable, "main.py"],
             cwd=PROJECT_ROOT,
             capture_output=True,
-            timeout=60,
+            timeout=90,
         )
         results_dir = PROJECT_ROOT / "results"
         expected_files = [
@@ -53,9 +53,11 @@ class TestPipelineExecution:
             "e2b_accounting.csv",
             "e2c_uncertainty.csv",
             "e2d_decomposition.csv",
+            "e4_phase_diagram.csv",
             "wang_comparison.csv",
             "sobol_margin.csv",
             "sobol_gstar.csv",
+            "sobol_lp.csv",
             "morris_margin.csv",
             "morris_gstar.csv",
         ]
@@ -68,7 +70,7 @@ class TestPipelineExecution:
             [sys.executable, "main.py"],
             cwd=PROJECT_ROOT,
             capture_output=True,
-            timeout=60,
+            timeout=90,
         )
         figures_dir = PROJECT_ROOT / "figures"
         expected_figures = [
@@ -76,8 +78,10 @@ class TestPipelineExecution:
             "F2_verdict_flip.png",
             "F3_sobol_tornado.png",
             "F3b_morris_scatter.png",
+            "F3c_sobol_lp.png",
             "F5_wang_comparison.png",
             "F6_decomposition.png",
+            "F7_phase_diagram.png",
         ]
         for f in expected_figures:
             assert (figures_dir / f).exists(), f"Missing figure: {f}"
@@ -90,7 +94,7 @@ class TestPipelineExecution:
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=90,
         )
         assert result.returncode == 0, f"Stretch pipeline failed:\n{result.stderr}"
         assert (PROJECT_ROOT / "results" / "m6_phi_sweep.csv").exists()
@@ -111,7 +115,7 @@ class TestCrossModuleConsistency:
             [sys.executable, "main.py"],
             cwd=PROJECT_ROOT,
             capture_output=True,
-            timeout=60,
+            timeout=90,
         )
 
     def test_e1_organisms_match_provenance(self):
@@ -188,7 +192,7 @@ class TestBiologicalInvariants:
             [sys.executable, "main.py"],
             cwd=PROJECT_ROOT,
             capture_output=True,
-            timeout=60,
+            timeout=90,
         )
 
     def test_low_glucose_always_respiration(self):
@@ -292,7 +296,7 @@ class TestM6System:
             [sys.executable, "main.py", "--stretch"],
             cwd=PROJECT_ROOT,
             capture_output=True,
-            timeout=120,
+            timeout=90,
         )
 
     def test_phi_sweep_shows_overflow(self):

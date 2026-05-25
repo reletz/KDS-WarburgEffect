@@ -100,6 +100,29 @@ $\Phi$, $u_G$) disampling dari rentang ketidakpastian SI.
 Parameter teratas menurut $S_T$ = pengukuran yang, bila dipastikan,
 paling mengurangi ketidakpastian verdict = eksperimen penuntas.
 
+\subsection{E3b: Sobol pada Keluaran LP (Nonlinier)}
+
+Margin $m$ dari (\ref{eq:margin}) \textbf{linier} di $u_G$, sehingga
+Sobol secara trivial menempatkan $u_G$ di peringkat pertama --- hasil
+yang tautologis. Untuk menguji robustness, E3b menjalankan Sobol pada
+keluaran \textbf{nonlinier} Model~A: fraksi fermentatif optimal
+$f^*_G$ yang dihasilkan LP pada $g_\text{avail} = 1{,}5 \cdot g^*$
+(sedikit di atas ambang transisi). Kapasitas glikolitik efektif
+dimodulasi sebagai $V_G^\text{eff} = u_G \cdot V_G$, sehingga $u_G$
+memengaruhi struktur kendala LP secara nonlinier (pergantian titik-sudut
+aktif). Bila $u_G$ masih mendominasi pada keluaran ini, temuan E3
+bersifat robust dan bukan artefak rumus.
+
+\subsection{E4: Diagram Fase 2D}
+
+Fenotipe LP dihitung pada grid 2D: $u_G \in [0{,}05,\; 1{,}0]$ (80
+titik) $\times$ $g_\text{avail} \in [10^{-6},\; 2{,}5 \cdot V_G \cdot
+\Phi]$ (80 titik) per organisme. Hasilnya divisualisasikan sebagai
+heatmap kontinu (fraksi fermentatif) dengan kontur batas rezim pada
+$f^*_G = 0{,}05$, $0{,}50$, dan $0{,}95$. Diagram fase ini menunjukkan
+bagaimana kedua sumbu (pemanfaatan kapasitas dan ketersediaan glukosa)
+berinteraksi secara simultan untuk menentukan fenotipe metabolik.
+
 \begin{figure}[t]
     \centering
     \resizebox{\columnwidth}{!}{%
@@ -117,8 +140,8 @@ paling mengurangi ketidakpastian verdict = eksperimen penuntas.
         \node[block, below=of input] (m2) {\textbf{M2} Parameter Provenance};
         \node[block, below=of m2] (m1) {\textbf{M1} Model Solvers (LP + Analitik)};
         \node[block, below=of m1] (m3) {\textbf{M3} Audit: E1 + E2 + E2c + E2d};
-        \node[block, below=of m3] (m4) {\textbf{M4} Identifiabilitas (Sobol + Morris)};
-        \node[block, below=of m4] (m5) {\textbf{M5} Visualisasi (6 figur)};
+        \node[block, below=of m3] (m4) {\textbf{M4} Identifiabilitas (Sobol + LP)};
+        \node[block, below=of m4] (m5) {\textbf{M5} Visualisasi (8 figur)};
         \node[data, below=of m5] (output) {Figur (.png) + Hasil (.csv)};
 
         \node[block, dashed, right=0.6cm of m4] (m6)

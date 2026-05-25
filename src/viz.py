@@ -3,8 +3,10 @@
 F1: E1 overlay (two models, shared glucose axis) with disagreement shading
 F2: E2 capacity vs. realized (verdict flip curve) with confidence intervals
 F3: E3 Sobol/Morris tornado (dispute-settling measurement)
+F3c: E3b Sobol LP comparison (nonlinear vs linear)
 F5: Wang 2025 comparison (crossing-point mechanism)
 F6: Attribution decomposition (u_G vs enzyme definition)
+F7: E4 phase diagram (2D verdict map)
 
 All figures regenerated from cached results in <30s via `python -m src.viz`.
 """
@@ -429,6 +431,125 @@ def plot_f6_decomposition(df: pd.DataFrame | None = None) -> plt.Figure:
 # Generate all figures
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# F3c — E3b Sobol LP comparison (nonlinear vs linear)
+# ---------------------------------------------------------------------------
+
+def plot_f3c_sobol_lp(
+    df_lp: pd.DataFrame | None = None,
+    df_margin: pd.DataFrame | None = None,
+) -> plt.Figure:
+    """Compare Sobol indices from linear margin vs nonlinear LP output.
+
+    Shows side-by-side bars: left = margin (tautological), right = LP frac_glyc
+    (genuinely nonlinear). If u_G still dominates the LP output, the finding
+    is robust and not an artifact of the linear formula.
+    """
+    _setup_style()
+
+    if df_lp is None:
+        df_lp = pd.read_csv(RESULTS_DIR / "sobol_lp.csv")
+    if df_margin is None:
+        df_margin = pd.read_csv(RESULTS_DIR / "sobol_margin.csv")
+
+    organisms = df_lp["organism"].unique()
+    fig, axes = plt.subplots(1, len(organisms), figsize=(5 * len(organisms), 4.5), squeeze=False)
+
+    for idx, org in enumerate(organisms):
+        ax = axes[0, idx]
+        lp = df_lp[df_lp["organism"] == org].sort_values("parameter")
+        mg = df_margin[df_margin["organism"] == org].sort_values("parameter")
+
+        params = lp["parameter"].values
+        x = np.arange(len(params))
+        w = 0.35
+
+        colors_lp = [C_GLYC if "glyc" in p or p == "u_G" else C_RESP if "resp" in p else "#555555"
+                     for p in params]
+
+        ax.barh(x - w/2, lp["ST"].values, w, xerr=lp["ST_conf"].values,
+                color=colors_lp, alpha=0.9, label="LP frac_glyc (nonlinear)")
+        ax.barh(x + w/2, mg["ST"].values, w, xerr=mg["ST_conf"].values,
+                color=[c + "66" if len(c) == 7 else c for c in colors_lp],
+                alpha=0.5, edgecolor="gray", linewidth=0.5,
+                label="Margin (linear)")
+
+        ax.set_yticks(x)
+        ax.set_yticklabels(params)
+        ax.set_xlabel("Sobol Total-Order Index (ST)")
+        ax.set_title(org.replace("ecoli", "E. coli").replace("yeast", "S. cerevisiae").replace("mammalian", "Mammalian"))
+        ax.set_xlim(0, 1.0)
+        ax.legend(loc="lower right", fontsize=7)
+        ax.grid(axis="x", alpha=0.3)
+
+    fig.suptitle("E3b: Sobol on LP Output (Nonlinear) vs. Margin (Linear)", fontsize=12, y=1.02)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# F7 — E4 Phase diagram (2D verdict map)
+# ---------------------------------------------------------------------------
+
+def plot_f7_phase_diagram(df: pd.DataFrame | None = None) -> plt.Figure:
+    """Plot E4: 2D heatmap of fermentative fraction over (u_G, g_avail).
+
+    Shows regime boundaries between respiration-dominant, mixed, and
+    glycolysis-dominant regions. This phase diagram is a genuinely new
+    visualization not present in Shen, Kukurugya, or Wang.
+    """
+    _setup_style()
+
+    if df is None:
+        df = pd.read_csv(RESULTS_DIR / "e4_phase_diagram.csv")
+
+    organisms = df["organism"].unique()
+    fig, axes = plt.subplots(1, len(organisms), figsize=(5 * len(organisms), 4.5), squeeze=False)
+
+    from matplotlib.colors import LinearSegmentedColormap
+    cmap = LinearSegmentedColormap.from_list(
+        "verdict", [C_RESP, "#f0f0f0", C_GLYC], N=256
+    )
+
+    for idx, org in enumerate(organisms):
+        ax = axes[0, idx]
+        sub = df[df["organism"] == org]
+
+        u_vals = sorted(sub["u_G"].unique())
+        g_vals = sorted(sub["g_avail"].unique())
+
+        Z = np.zeros((len(u_vals), len(g_vals)))
+        for i, u in enumerate(u_vals):
+            for j, g in enumerate(g_vals):
+                row = sub[(sub["u_G"] == u) & (sub["g_avail"] == g)]
+                if len(row) > 0:
+                    Z[i, j] = row["frac_glyc"].iloc[0]
+
+        im = ax.pcolormesh(
+            g_vals, u_vals, Z,
+            cmap=cmap, vmin=0, vmax=1, shading="auto",
+        )
+
+        # Draw regime boundary contours
+        ax.contour(
+            g_vals, u_vals, Z,
+            levels=[0.05, 0.5, 0.95],
+            colors=["white", "black", "white"],
+            linewidths=[1, 2, 1],
+            linestyles=["--", "-", "--"],
+        )
+
+        ax.set_xlabel("Glucose availability (g_avail)")
+        ax.set_ylabel("Glycolytic utilization (u_G)")
+        ax.set_title(org.replace("ecoli", "E. coli").replace("yeast", "S. cerevisiae").replace("mammalian", "Mammalian"))
+
+    cbar = fig.colorbar(im, ax=axes[0, :], shrink=0.8, pad=0.02)
+    cbar.set_label("Fermentative ATP fraction")
+
+    fig.suptitle("E4: Phase Diagram — Metabolic Regime Map (u_G vs. Glucose)", fontsize=12, y=1.02)
+    return fig
+
+
 def generate_all_figures(include_m6: bool = False) -> None:
     """Generate and save all report/deck figures from cached results."""
     FIGURES_DIR.mkdir(exist_ok=True)
@@ -475,6 +596,20 @@ def generate_all_figures(include_m6: bool = False) -> None:
     fig6.savefig(FIGURES_DIR / "F6_decomposition.png")
     fig6.savefig(FIGURES_DIR / "F6_decomposition.svg")
     plt.close(fig6)
+
+    if (RESULTS_DIR / "sobol_lp.csv").exists():
+        print("[M5] Generating F3c (Sobol LP vs margin comparison)...")
+        fig3c = plot_f3c_sobol_lp()
+        fig3c.savefig(FIGURES_DIR / "F3c_sobol_lp.png")
+        fig3c.savefig(FIGURES_DIR / "F3c_sobol_lp.svg")
+        plt.close(fig3c)
+
+    if (RESULTS_DIR / "e4_phase_diagram.csv").exists():
+        print("[M5] Generating F7 (phase diagram)...")
+        fig7 = plot_f7_phase_diagram()
+        fig7.savefig(FIGURES_DIR / "F7_phase_diagram.png")
+        fig7.savefig(FIGURES_DIR / "F7_phase_diagram.svg")
+        plt.close(fig7)
 
     print(f"[M5] All figures saved to {FIGURES_DIR}/")
 

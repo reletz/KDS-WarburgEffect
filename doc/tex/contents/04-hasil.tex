@@ -104,18 +104,85 @@ Mamalia               & $u_G$        & 0{,}781 & 0{,}059 \\
 Morris $\mu^*$ mengkonfirmasi peringkat yang sama (Gambar~\ref{fig:morris}).
 \textbf{Temuan E3:} Pengukuran yang paling mengurangi ketidakpastian
 verdict adalah $u_G$ --- fraksi pemanfaatan kapasitas glikolitik.
-Eksperimentalis yang mengukur $u_G$ in-vivo akan menuntaskan perdebatan.
+
+Namun, karena margin $m$ linier di $u_G$, dominasi ini berpotensi
+tautologis. E3b menguji robustness temuan ini.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{F3_sobol_tornado.png}
-    \caption{E3: Indeks Sobol total-order ($S_T$) per parameter. $u_G$ mendominasi secara konsisten di ketiga organisme ($S_T > 0{,}75$).}
+    \caption{E3: Indeks Sobol total-order ($S_T$) per parameter pada keluaran margin (linier). $u_G$ mendominasi di ketiga organisme ($S_T > 0{,}75$).}
     \label{fig:sobol}
 \end{figure}
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{F3b_morris_scatter.png}
-    \caption{Pemeriksaan silang Morris: $\mu^*$ (kepentingan) vs.\ $\sigma$ (nonlinearitas). $u_G$ mendominasi, konsisten dengan Sobol.}
+    \caption{Pemeriksaan silang Morris: $\mu^*$ vs.\ $\sigma$. $u_G$ mendominasi, konsisten dengan Sobol.}
     \label{fig:morris}
+\end{figure}
+
+\subsection{E3b: Validasi Nonlinier --- Sobol pada Keluaran LP}
+
+Gambar~\ref{fig:sobol_lp} membandingkan indeks Sobol dari keluaran
+margin (linier) versus keluaran LP $f^*_G$ (nonlinier).
+Pada keluaran nonlinier, kepentingan terdistribusi lebih merata:
+
+\begin{table}[h]
+\centering
+\caption{Perbandingan $S_T$ teratas: margin (linier) vs.\ LP $f^*_G$ (nonlinier).}
+\label{tab:sobol_lp}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Organisme} & \textbf{Parameter} & $\boldsymbol{S_T}$ \textbf{margin} & $\boldsymbol{S_T}$ \textbf{LP} \\
+\midrule
+\textit{E.\ coli}    & $u_G$        & 0{,}756 & 0{,}633 \\
+                      & $\gamma_R$   & 0{,}017 & 0{,}301 \\
+\midrule
+\textit{S.\ cerevisiae} & $u_G$     & 0{,}765 & 0{,}606 \\
+                      & $\gamma_R$   & 0{,}017 & 0{,}343 \\
+\midrule
+Mamalia               & $\gamma_R$   & 0{,}017 & \textbf{0{,}429} \\
+                      & $u_G$        & 0{,}781 & 0{,}395 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Temuan E3b:} Pada keluaran nonlinier, $u_G$ tetap mendominasi
+untuk \textit{E.\ coli} dan ragi, namun untuk sel mamalia
+\textbf{$\gamma_R$ mengambil alih peringkat pertama} ($S_T = 0{,}43$
+vs.\ $0{,}40$). Ini menunjukkan bahwa (i)~dominasi $u_G$ pada E3 bukan
+sepenuhnya tautologis --- ia memang penting secara nonlinier, namun
+(ii)~yield ATP respirasi ($\gamma_R$) juga merupakan pengukuran
+penuntas yang kritis, terutama untuk sel mamalia. Temuan ini tidak
+terlihat dari analisis margin linier.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F3c_sobol_lp.png}
+    \caption{E3b: Perbandingan $S_T$ antara keluaran margin (linier, bar terang) dan keluaran LP $f^*_G$ (nonlinier, bar gelap). Pada keluaran nonlinier, $\gamma_R$ muncul sebagai parameter penting kedua.}
+    \label{fig:sobol_lp}
+\end{figure}
+
+\subsection{E4: Diagram Fase Metabolik}
+
+Gambar~\ref{fig:phase} menampilkan peta rezim 2D pada sumbu
+$(g_\text{avail}, u_G)$ untuk ketiga organisme. Tiga rezim terlihat
+jelas: (i)~respirasi dominan (teal, kiri bawah --- glukosa rendah),
+(ii)~glikolisis dominan (kuning, kanan atas --- glukosa tinggi dan
+$u_G$ tinggi), dan (iii)~zona transisi sempit. Kontur $f^*_G = 0{,}5$
+(garis hitam solid) menandai batas keputusan utama.
+
+\textbf{Temuan E4:} Batas rezim bergeser ke kanan (glukosa lebih tinggi)
+seiring $u_G$ menurun --- artinya sel dengan enzim glikolitik idle
+memerlukan glukosa lebih banyak sebelum beralih ke fermentasi. Ini
+konsisten dengan mekanisme \textit{proteome hedging} Shen: sel
+mempertahankan enzim glikolitik idle sebagai cadangan, sehingga
+ambang fermentasi naik.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F7_phase_diagram.png}
+    \caption{E4: Diagram fase metabolik. Heatmap menunjukkan fraksi fermentatif pada grid $(g_\text{avail}, u_G)$. Kontur hitam = batas $f^*_G = 0{,}5$; putus-putus = $0{,}05$ dan $0{,}95$.}
+    \label{fig:phase}
 \end{figure}

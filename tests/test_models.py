@@ -440,3 +440,87 @@ class TestIdentifiability:
         top2_sobol = set(df_s.head(2)["parameter"])
         top2_morris = set(df_m.head(2)["parameter"])
         assert len(top2_sobol & top2_morris) >= 1  # at least 1 in common
+
+
+# ===========================================================================
+# UNIT TESTS — M4: E3b (Sobol on LP nonlinear output)
+# ===========================================================================
+
+class TestSobolLP:
+    def test_sobol_lp_returns_all_params(self):
+        """Sobol LP analysis should return indices for all 6 parameters."""
+        from src.identifiability import run_sobol_lp
+        df, problem = run_sobol_lp(organism="yeast", N=64)
+        assert len(df) == problem["num_vars"]
+        assert "ST" in df.columns
+        assert df["output"].iloc[0] == "lp_frac_glyc"
+
+    def test_sobol_lp_indices_bounded(self):
+        """LP Sobol indices should be in reasonable range."""
+        from src.identifiability import run_sobol_lp
+        df, _ = run_sobol_lp(organism="yeast", N=64)
+        assert all(df["ST"] >= -0.2)
+        assert all(df["ST"] <= 1.5)
+
+    def test_sobol_lp_distributes_importance(self):
+        """LP output should spread importance more evenly than margin (not tautological).
+
+        On the linear margin, u_G alone gets ST ~0.76. On the nonlinear LP output,
+        multiple parameters should have ST > 0.1, showing genuine sensitivity.
+        """
+        from src.identifiability import run_sobol_lp
+        df, _ = run_sobol_lp(organism="yeast", N=256)
+        params_above_01 = df[df["ST"] > 0.1]
+        assert len(params_above_01) >= 2, (
+            "LP Sobol should distribute importance across multiple params"
+        )
+
+    def test_sobol_lp_gamma_resp_matters(self):
+        """On LP output, gamma_resp should have meaningful importance (unlike margin)."""
+        from src.identifiability import run_sobol_lp
+        df, _ = run_sobol_lp(organism="yeast", N=256)
+        gamma_resp_row = df[df["parameter"] == "gamma_resp"]
+        assert len(gamma_resp_row) == 1
+        assert gamma_resp_row.iloc[0]["ST"] > 0.1
+
+
+# ===========================================================================
+# UNIT TESTS — M3: E4 (Phase diagram)
+# ===========================================================================
+
+class TestPhaseDiagram:
+    def test_e4_returns_expected_columns(self):
+        """E4 should return a dataframe with the right columns."""
+        from src.audit import run_e4_phase_diagram
+        df = run_e4_phase_diagram(organism="yeast", n_uG=10, n_g=10)
+        expected = {"organism", "u_G", "g_avail", "frac_glyc", "phenotype", "J_ATP"}
+        assert expected.issubset(set(df.columns))
+
+    def test_e4_grid_size(self):
+        """E4 should produce n_uG * n_g rows."""
+        from src.audit import run_e4_phase_diagram
+        df = run_e4_phase_diagram(organism="yeast", n_uG=10, n_g=15)
+        assert len(df) == 10 * 15
+
+    def test_e4_low_glucose_always_respiration(self):
+        """At very low glucose, all u_G values should give respiration."""
+        from src.audit import run_e4_phase_diagram
+        df = run_e4_phase_diagram(organism="yeast", n_uG=10, n_g=20)
+        lowest_g = df.sort_values("g_avail").iloc[0]["g_avail"]
+        low_g = df[df["g_avail"] == lowest_g]
+        assert all(low_g["frac_glyc"] < 0.05)
+
+    def test_e4_high_glucose_high_uG_glycolysis(self):
+        """At high glucose + high u_G, glycolysis should dominate."""
+        from src.audit import run_e4_phase_diagram
+        df = run_e4_phase_diagram(organism="yeast", n_uG=20, n_g=20)
+        high_corner = df[(df["u_G"] > 0.9) & (df["g_avail"] > df["g_avail"].quantile(0.9))]
+        assert all(high_corner["frac_glyc"] > 0.5)
+
+    def test_e4_contains_multiple_phenotypes(self):
+        """Phase diagram should contain at least respiration and glycolysis regions."""
+        from src.audit import run_e4_phase_diagram
+        df = run_e4_phase_diagram(organism="yeast", n_uG=20, n_g=20)
+        phenotypes = set(df["phenotype"].unique())
+        assert "respiration" in phenotypes
+        assert len(phenotypes) >= 2

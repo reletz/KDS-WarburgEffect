@@ -91,6 +91,12 @@ Jalankan sensitivitas global (Sobol + Morris via **SALib** — Monte Carlo, *buk
 
 **Gerbang validasi (WAJIB sebelum audit apa pun).** Tiap model hasil re-implementasi **hanya boleh masuk audit** setelah mereproduksi ≥1 hasil terbit dalam toleransi tertera: Model B → bentuk kurva peralihan & laju glikolisis/respirasi vs. glukosa (Kukurugya Fig. 1F–H) dalam ±20%; Model A → perilaku batas (glukosa→0 ⇒ respirasi murni; proteom jenuh & glukosa tinggi ⇒ onset fermentasi). Tanpa lolos gerbang ini, perbandingan tidak sah secara akademik.
 
+**E3b — Sobol pada keluaran LP nonlinier (uji non-tautologis).**
+E3 asli menjalankan Sobol pada margin `m = u_R·(V·γ)_R − u_G·(V·γ)_G` — rumus yang **linier** di `u_G`, sehingga Sobol secara trivial menempatkan `u_G` di peringkat pertama (tautologis). E3b menjalankan Sobol pada **keluaran LP Model A** (`frac_glyc` = fraksi fermentatif optimal) yang **nonlinier** — memiliki transisi titik-sudut dan pergantian kendala aktif. Bila `u_G` masih mendominasi pada keluaran nonlinier, temuan E3 bersifat robust dan bukan artefak rumus linier. Glukosa di-set pada `g* × 1.5` (sedikit di atas ambang transisi) agar LP beroperasi di rezim di mana keputusan fenotipe benar-benar terjadi.
+
+**E4 — Diagram fase 2D (peta rezim metabolik).**
+Hitung fenotipe LP pada grid 2D `(u_G, g_avail)` per organisme. Visualisasikan sebagai heatmap kontinu (fraksi fermentatif) dengan kontur batas rezim (respirasi / campuran / glikolisis). Diagram ini **belum ada** di literatur Shen, Kukurugya, maupun Wang dan merupakan artefak visual orisinal yang menunjukkan bagaimana kedua sumbu (pemanfaatan kapasitas dan ketersediaan glukosa) berinteraksi secara simultan untuk menentukan fenotipe metabolik.
+
 **Punchline yang dapat difalsifikasi (hasil utama yang diharapkan):**
 Perselisihan terlokalisasi terutama pada **besaran yang diukur (kapasitas vs. realisasi)**, bukan struktur model; verdict membalik pada fraksi-idle glikolitik `u_G` yang realistis (konsisten dengan temuan ekspresi-berlebih Shen); dan analisis identifiabilitas menamai pengukuran tunggal yang menuntaskan perdebatan. Posisi terhadap Wang 2025: ia *menambah model* (penyilangan efisiensi + heterogenitas) untuk mendamaikan; kami *mengaudit model asli* untuk mendiagnosis bahwa keduanya mungkin tak mengukur besaran yang sama. Diagnosis berbeda, komplementer — dan dapat dibandingkan langsung dengan mekanisme Wang.
 
@@ -201,7 +207,7 @@ warburg-audit/
 ├── data/
 │   └── provenance.csv        # sumber parameter (otomatis)
 ├── results/                  # keluaran audit & sensitivitas
-├── figures/                  # F1–F4 png+svg
+├── figures/                  # F1–F7 png+svg
 ├── tests/
 │   └── test_models.py        # uji solusi-sudut + reproduksi rasio Kukurugya
 └── report/                   # PDF 6-halaman + dek slide

@@ -437,5 +437,62 @@ def run_wang_comparison(n_points: int = 200) -> pd.DataFrame:
     return df
 
 
+# ---------------------------------------------------------------------------
+# E4 — Phase diagram: 2D verdict map over (u_G, g_avail)
+# ---------------------------------------------------------------------------
+
+def run_e4_phase_diagram(
+    organism: Organism = "yeast",
+    n_uG: int = 100,
+    n_g: int = 100,
+) -> pd.DataFrame:
+    """Compute verdict across a 2D grid of (u_G, g_avail).
+
+    For each (u_G, g_avail), run the LP with effective V_glyc = u_G * V_glyc
+    and record the phenotype and fermentative fraction. This produces a phase
+    diagram showing regime boundaries — a genuinely new visualization that
+    doesn't exist in the Shen/Kukurugya/Wang literature.
+    """
+    from src.models import solve_shen
+
+    op = ALL_ORGANISMS[organism]
+    base = ModelParams.from_organism_params(op, g_avail=0.0)
+
+    g_max = 2.5 * op.V_glyc.value * op.Phi.value
+    u_G_values = np.linspace(0.05, 1.0, n_uG)
+    g_values = np.linspace(1e-6, g_max, n_g)
+
+    rows = []
+    for u_G in u_G_values:
+        for g in g_values:
+            p = ModelParams(
+                gamma_resp=base.gamma_resp,
+                gamma_glyc=base.gamma_glyc,
+                V_resp=base.V_resp,
+                V_glyc=base.V_glyc * u_G,
+                Phi=base.Phi,
+                g_avail=float(g),
+            )
+            result = solve_shen(p)
+            rows.append({
+                "organism": organism,
+                "u_G": float(u_G),
+                "g_avail": float(g),
+                "frac_glyc": result.frac_glyc,
+                "phenotype": result.phenotype,
+                "J_ATP": result.J_ATP,
+            })
+
+    return pd.DataFrame(rows)
+
+
+def run_e4_all_organisms(n_uG: int = 100, n_g: int = 100) -> pd.DataFrame:
+    """Run E4 phase diagram for all organisms."""
+    dfs = []
+    for org in ALL_ORGANISMS:
+        dfs.append(run_e4_phase_diagram(organism=org, n_uG=n_uG, n_g=n_g))
+    return pd.concat(dfs, ignore_index=True)
+
+
 if __name__ == "__main__":
     run_full_audit()

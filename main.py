@@ -55,9 +55,19 @@ def main() -> None:
               f"(Wang nutrient-quality q = {1-cp:.4f})")
     print()
 
-    # --- M4: Identifiability (E3) ---
+    # --- E4: Phase diagram ---
     print("=" * 70)
-    print("[M4] Identifiability analysis (E3 — Sobol + Morris)")
+    print("[M3+] Phase diagram (E4 — 2D verdict map)")
+    print("=" * 70)
+    from src.audit import run_e4_all_organisms
+    e4_df = run_e4_all_organisms(n_uG=80, n_g=80)
+    e4_df.to_csv(results_dir / "e4_phase_diagram.csv", index=False)
+    print(f"  Phase diagram: {len(e4_df)} grid points")
+    print()
+
+    # --- M4: Identifiability (E3 + E3b) ---
+    print("=" * 70)
+    print("[M4] Identifiability analysis (E3 — Sobol + Morris + LP)")
     print("=" * 70)
     from src.identifiability import run_e3
     e3_results = run_e3()
@@ -105,9 +115,15 @@ def main() -> None:
               f"(ρ = {row['nominal_flip_uG']:.4f})")
 
     sobol_df = e3_results["sobol_margin"]
-    print("\n  E3: Dispute-settling measurements (top Sobol ST):")
+    print("\n  E3: Dispute-settling measurements (top Sobol ST, margin):")
     for org in sobol_df["organism"].unique():
         top = sobol_df[sobol_df["organism"] == org].iloc[0]
+        print(f"    {org}: {top['parameter']} (ST = {top['ST']:.4f})")
+
+    sobol_lp_df = e3_results["sobol_lp"]
+    print("\n  E3b: Sobol on LP output (nonlinear — top ST):")
+    for org in sobol_lp_df["organism"].unique():
+        top = sobol_lp_df[sobol_lp_df["organism"] == org].iloc[0]
         print(f"    {org}: {top['parameter']} (ST = {top['ST']:.4f})")
 
     print("\n  E2d: Attribution decomposition (±30% enzyme reattribution):")
