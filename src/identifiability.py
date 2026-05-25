@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from SALib.analyze import morris as morris_analyze, sobol as sobol_analyze
-from SALib.sample import morris as morris_sample, saltelli
+from SALib.sample import morris as morris_sample, sobol as sobol_sample
 
 from src.models import ModelParams, compute_efficiency_with_utilization, sweep_glucose
 from src.params import ALL_ORGANISMS, Organism, get_param_ranges
@@ -105,15 +105,14 @@ def run_sobol(
     include_uG = (output == "margin")
     problem = _build_salib_problem(organism, include_uG=include_uG)
 
-    np.random.seed(RNG_SEED)
-    X = saltelli.sample(problem, N, calc_second_order=False)
+    X = sobol_sample.sample(problem, N, calc_second_order=False, seed=RNG_SEED)
 
     if output == "margin":
         Y = _evaluate_margin(X)
     else:
         Y = _evaluate_critical_glucose(X)
 
-    Si = sobol_analyze.analyze(problem, Y, calc_second_order=False)
+    Si = sobol_analyze.analyze(problem, Y, calc_second_order=False, seed=RNG_SEED)
 
     df = pd.DataFrame({
         "parameter": problem["names"],
@@ -145,8 +144,7 @@ def run_morris(
     include_uG = (output == "margin")
     problem = _build_salib_problem(organism, include_uG=include_uG)
 
-    np.random.seed(RNG_SEED)
-    X = morris_sample.sample(problem, N)
+    X = morris_sample.sample(problem, N, seed=RNG_SEED)
 
     if output == "margin":
         Y = _evaluate_margin(X)
