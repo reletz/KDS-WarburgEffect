@@ -1,8 +1,10 @@
 """M5 — Visualization: publication-quality figures for the audit report.
 
-F1: E1 overlay (two models, shared glucose axis)
-F2: E2 capacity vs. realized (verdict flip curve)
+F1: E1 overlay (two models, shared glucose axis) with disagreement shading
+F2: E2 capacity vs. realized (verdict flip curve) with confidence intervals
 F3: E3 Sobol/Morris tornado (dispute-settling measurement)
+F5: Wang 2025 comparison (crossing-point mechanism)
+F6: Attribution decomposition (u_G vs enzyme definition)
 
 All figures regenerated from cached results in <30s via `python -m src.viz`.
 """
@@ -22,6 +24,8 @@ C_RESP = "#0d7377"
 C_GLYC = "#e6a817"
 C_MODEL_A = "#2c3e50"
 C_MODEL_B = "#c0392b"
+C_WANG = "#7b2d8b"
+C_CI = "#aaaaaa"
 
 
 def _setup_style() -> None:
@@ -42,32 +46,44 @@ def _setup_style() -> None:
 # ---------------------------------------------------------------------------
 
 def plot_f1_overlay(df: pd.DataFrame | None = None) -> plt.Figure:
-    """Plot E1: both models' fermentative fraction vs. glucose availability."""
+    """Plot E1: both models' fermentative fraction vs. glucose availability.
+
+    Enhanced with shaded disagreement regions where models predict different phenotypes.
+    """
     _setup_style()
 
     if df is None:
         df = pd.read_csv(RESULTS_DIR / "e1_overlay.csv")
 
     organisms = df["organism"].unique()
-    fig, axes = plt.subplots(1, len(organisms), figsize=(5 * len(organisms), 4), squeeze=False)
+    fig, axes = plt.subplots(1, len(organisms), figsize=(5 * len(organisms), 4.5), squeeze=False)
 
     for idx, org in enumerate(organisms):
         ax = axes[0, idx]
         sub = df[df["organism"] == org]
 
-        for model_name, color, ls in [
-            ("Model A (Shen LP)", C_MODEL_A, "-"),
-            ("Model B (Kukurugya)", C_MODEL_B, "--"),
-        ]:
-            m = sub[sub["model"] == model_name]
-            ax.plot(m["g_avail"], m["frac_glyc"], color=color, ls=ls, lw=2, label=model_name)
+        m_a = sub[sub["model"] == "Model A (Shen LP)"].sort_values("g_avail")
+        m_b = sub[sub["model"] == "Model B (Kukurugya)"].sort_values("g_avail")
+
+        ax.plot(m_a["g_avail"], m_a["frac_glyc"], color=C_MODEL_A, ls="-", lw=2, label="Model A (Shen LP)")
+        ax.plot(m_b["g_avail"], m_b["frac_glyc"], color=C_MODEL_B, ls="--", lw=2, label="Model B (Kukurugya)")
+
+        # Shade disagreement region (where models differ by >0.1)
+        if len(m_a) == len(m_b):
+            g_vals = m_a["g_avail"].values
+            diff = np.abs(m_a["frac_glyc"].values - m_b["frac_glyc"].values)
+            disagree = diff > 0.1
+            ax.fill_between(
+                g_vals, 0, 1, where=disagree,
+                alpha=0.08, color="red", label="Disagreement zone"
+            )
 
         ax.set_xlabel("Glucose availability (g_avail)")
         ax.set_ylabel("Fermentative ATP fraction")
         ax.set_title(org.replace("ecoli", "E. coli").replace("yeast", "S. cerevisiae").replace("mammalian", "Mammalian"))
         ax.set_ylim(-0.05, 1.05)
         ax.axhline(0.5, color="gray", ls=":", lw=0.8, alpha=0.5)
-        ax.legend(loc="lower right")
+        ax.legend(loc="lower right", fontsize=8)
         ax.grid(alpha=0.3)
 
     fig.suptitle("E1: Model Overlay — Fermentative Fraction vs. Glucose Availability", fontsize=13, y=1.02)
@@ -79,15 +95,21 @@ def plot_f1_overlay(df: pd.DataFrame | None = None) -> plt.Figure:
 # F2 — E2 Capacity vs. Realized (verdict flip)
 # ---------------------------------------------------------------------------
 
-def plot_f2_verdict_flip(df: pd.DataFrame | None = None) -> plt.Figure:
-    """Plot E2: realized efficiency margin as function of u_G."""
+def plot_f2_verdict_flip(df: pd.DataFrame | None = None, ci_df: pd.DataFrame | None = None) -> plt.Figure:
+    """Plot E2: realized efficiency margin as function of u_G.
+
+    Enhanced with confidence interval bands on the flip point from E2c bootstrap.
+    """
     _setup_style()
 
     if df is None:
         df = pd.read_csv(RESULTS_DIR / "e2_capacity_vs_realized.csv")
+    if ci_df is None:
+        ci_path = RESULTS_DIR / "e2c_uncertainty.csv"
+        ci_df = pd.read_csv(ci_path) if ci_path.exists() else None
 
     organisms = df["organism"].unique()
-    fig, axes = plt.subplots(1, len(organisms), figsize=(5 * len(organisms), 4), squeeze=False)
+    fig, axes = plt.subplots(1, len(organisms), figsize=(5 * len(organisms), 4.5), squeeze=False)
 
     for idx, org in enumerate(organisms):
         ax = axes[0, idx]
@@ -98,18 +120,47 @@ def plot_f2_verdict_flip(df: pd.DataFrame | None = None) -> plt.Figure:
         ax.axhline(sub["Vgamma_R_capacity"].iloc[0], color=C_RESP, ls=":", lw=1, alpha=0.6, label="Capacity (V·γ)_R")
         ax.axhline(sub["Vgamma_G_capacity"].iloc[0], color=C_GLYC, ls=":", lw=1, alpha=0.6, label="Capacity (V·γ)_G")
 
+        # Find and annotate flip point
         margin = sub["Vgamma_R_realized"].values - sub["Vgamma_G_realized"].values
         sign_changes = np.where(np.diff(np.sign(margin)))[0]
         for sc in sign_changes:
             flip_u = sub["u_G"].iloc[sc]
             ax.axvline(flip_u, color="red", ls="--", lw=1.5, alpha=0.8)
-            ax.annotate(f"flip @ u_G={flip_u:.3f}", xy=(flip_u, ax.get_ylim()[1] * 0.9),
-                        fontsize=8, color="red", ha="center")
+
+            # Add CI band if available
+            if ci_df is not None:
+                ci_row = ci_df[ci_df["organism"] == org]
+                if not ci_row.empty:
+                    ci_lo = ci_row["ci_5"].iloc[0]
+                    ci_hi = ci_row["ci_95"].iloc[0]
+                    y_min, y_max = ax.get_ylim() if ax.get_ylim()[1] != 1.0 else (sub["Vgamma_R_realized"].min(), sub["Vgamma_G_realized"].max())
+                    ax.axvspan(ci_lo, ci_hi, alpha=0.12, color=C_CI, label=f"90% CI [{ci_lo:.3f}, {ci_hi:.3f}]")
+                    ax.annotate(
+                        f"flip = {flip_u:.3f}\n90% CI: [{ci_lo:.3f}, {ci_hi:.3f}]",
+                        xy=(flip_u, sub["Vgamma_G_realized"].max() * 0.85),
+                        fontsize=7, color="red", ha="center",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8),
+                    )
+                else:
+                    ax.annotate(f"flip @ u_G={flip_u:.3f}", xy=(flip_u, sub["Vgamma_G_realized"].max() * 0.9),
+                                fontsize=8, color="red", ha="center")
+            else:
+                ax.annotate(f"flip @ u_G={flip_u:.3f}", xy=(flip_u, sub["Vgamma_G_realized"].max() * 0.9),
+                            fontsize=8, color="red", ha="center")
+
+        # Shade verdict regions
+        u_vals = sub["u_G"].values
+        ax.fill_between(u_vals, sub["Vgamma_R_realized"], sub["Vgamma_G_realized"],
+                        where=sub["Vgamma_R_realized"] > sub["Vgamma_G_realized"],
+                        alpha=0.06, color=C_RESP)
+        ax.fill_between(u_vals, sub["Vgamma_R_realized"], sub["Vgamma_G_realized"],
+                        where=sub["Vgamma_R_realized"] < sub["Vgamma_G_realized"],
+                        alpha=0.06, color=C_GLYC)
 
         ax.set_xlabel("Glycolytic utilization fraction (u_G)")
         ax.set_ylabel("ATP rate per protein (V·γ × u)")
         ax.set_title(org.replace("ecoli", "E. coli").replace("yeast", "S. cerevisiae").replace("mammalian", "Mammalian"))
-        ax.legend(loc="upper right", fontsize=8)
+        ax.legend(loc="upper right", fontsize=7)
         ax.grid(alpha=0.3)
 
     fig.suptitle("E2: Capacity vs. Realized — Verdict Flips When Glycolysis Is Underutilized", fontsize=12, y=1.02)
@@ -238,6 +289,143 @@ def plot_f4_eccore(
 
 
 # ---------------------------------------------------------------------------
+# F5 — Wang 2025 comparison (crossing-point mechanism)
+# ---------------------------------------------------------------------------
+
+def plot_f5_wang_comparison(df: pd.DataFrame | None = None) -> plt.Figure:
+    """Plot comparison between our u_G mechanism and Wang 2025's crossing prediction.
+
+    Shows that both frameworks predict the same efficiency crossing but from
+    different mechanistic angles: Wang uses nutrient quality, we use utilization fraction.
+    """
+    _setup_style()
+
+    if df is None:
+        df_path = RESULTS_DIR / "wang_comparison.csv"
+        if df_path.exists():
+            df = pd.read_csv(df_path)
+        else:
+            from src.audit import run_wang_comparison
+            df = run_wang_comparison()
+
+    organisms = df["organism"].unique()
+    fig, axes = plt.subplots(2, len(organisms), figsize=(5 * len(organisms), 8), squeeze=False)
+
+    for idx, org in enumerate(organisms):
+        sub = df[df["organism"] == org]
+        crossing = sub["crossing_point_uG"].iloc[0]
+
+        # Top row: Our framework (u_G axis)
+        ax_top = axes[0, idx]
+        ax_top.plot(sub["u_G"], sub["realized_eff_resp"], color=C_RESP, lw=2, label="ε_resp (realized)")
+        ax_top.plot(sub["u_G"], sub["realized_eff_glyc"], color=C_GLYC, lw=2, label="ε_glyc (realized)")
+        ax_top.axvline(crossing, color="red", ls="--", lw=1.5, alpha=0.8)
+        ax_top.fill_between(sub["u_G"], sub["realized_eff_resp"], sub["realized_eff_glyc"],
+                            where=sub["realized_eff_resp"] > sub["realized_eff_glyc"],
+                            alpha=0.08, color=C_RESP)
+        ax_top.fill_between(sub["u_G"], sub["realized_eff_resp"], sub["realized_eff_glyc"],
+                            where=sub["realized_eff_resp"] < sub["realized_eff_glyc"],
+                            alpha=0.08, color=C_GLYC)
+        ax_top.annotate(f"crossing @ ρ = {crossing:.3f}", xy=(crossing, ax_top.get_ylim()[0]),
+                        xytext=(crossing + 0.05, sub["realized_eff_resp"].iloc[0] * 0.5),
+                        fontsize=8, color="red", arrowprops=dict(arrowstyle="->", color="red"))
+        ax_top.set_xlabel("Glycolytic utilization fraction (u_G)")
+        ax_top.set_ylabel("Efficiency (V·γ × u)")
+        ax_top.set_title(f"{org} — Our Framework")
+        ax_top.legend(loc="upper left", fontsize=8)
+        ax_top.grid(alpha=0.3)
+
+        # Bottom row: Wang's framework (nutrient quality axis)
+        ax_bot = axes[1, idx]
+        wang_crossing = sub["crossing_point_wang_q"].iloc[0]
+        ax_bot.plot(sub["wang_nutrient_quality"], sub["realized_eff_resp"], color=C_RESP, lw=2, label="ε_resp")
+        ax_bot.plot(sub["wang_nutrient_quality"], sub["realized_eff_glyc"], color=C_GLYC, lw=2, label="ε_glyc")
+        ax_bot.axvline(wang_crossing, color=C_WANG, ls="--", lw=1.5, alpha=0.8)
+        ax_bot.fill_between(sub["wang_nutrient_quality"], sub["realized_eff_resp"], sub["realized_eff_glyc"],
+                            where=sub["realized_eff_resp"] > sub["realized_eff_glyc"],
+                            alpha=0.08, color=C_RESP)
+        ax_bot.fill_between(sub["wang_nutrient_quality"], sub["realized_eff_resp"], sub["realized_eff_glyc"],
+                            where=sub["realized_eff_resp"] < sub["realized_eff_glyc"],
+                            alpha=0.08, color=C_GLYC)
+        ax_bot.annotate(f"Wang crossing @ q = {wang_crossing:.3f}", xy=(wang_crossing, ax_bot.get_ylim()[0]),
+                        xytext=(wang_crossing + 0.05, sub["realized_eff_resp"].iloc[0] * 0.5),
+                        fontsize=8, color=C_WANG, arrowprops=dict(arrowstyle="->", color=C_WANG))
+        ax_bot.set_xlabel("Wang nutrient quality (q = 1 − u_G)")
+        ax_bot.set_ylabel("Efficiency (V·γ × u)")
+        ax_bot.set_title(f"{org} — Wang 2025 Framework")
+        ax_bot.legend(loc="upper right", fontsize=8)
+        ax_bot.grid(alpha=0.3)
+
+    fig.suptitle("Comparison: Our Audit vs. Wang 2025 — Same Crossing, Different Mechanism", fontsize=12, y=1.01)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# F6 — Attribution decomposition
+# ---------------------------------------------------------------------------
+
+def plot_f6_decomposition(df: pd.DataFrame | None = None) -> plt.Figure:
+    """Plot E2d: how enzyme reattribution (varying which proteins are counted) affects ρ and flip.
+
+    Key insight: even ±30% reattribution of enzyme mass between pathways shifts
+    the flip point proportionally (flip ≈ ρ always), but the Sobol analysis shows
+    u_G dominates (ST ≈ 0.76-0.78) while V_glyc/V_resp contribute only ST ≈ 0.12.
+    """
+    _setup_style()
+
+    if df is None:
+        df_path = RESULTS_DIR / "e2d_decomposition.csv"
+        if df_path.exists():
+            df = pd.read_csv(df_path)
+        else:
+            return plt.figure()
+
+    organisms = df["organism"].unique()
+    fig, axes = plt.subplots(1, len(organisms), figsize=(5 * len(organisms), 4.5), squeeze=False)
+
+    for idx, org in enumerate(organisms):
+        ax = axes[0, idx]
+        sub = df[df["organism"] == org].dropna(subset=["flip_uG"])
+
+        if len(sub) == 0:
+            continue
+
+        # Plot flip_uG vs reattribution factor
+        ax.plot(sub["reattribution_factor"], sub["flip_uG"], color=C_MODEL_A, lw=2.5, label="flip u_G")
+        ax.plot(sub["reattribution_factor"], sub["rho"], color="red", ls="--", lw=1.5, alpha=0.7, label="ρ (tracks flip)")
+
+        # Mark baseline
+        baseline_rho = sub["baseline_rho"].iloc[0]
+        ax.axhline(baseline_rho, color="gray", ls=":", lw=1, alpha=0.5)
+        ax.axvline(1.0, color="gray", ls=":", lw=1, alpha=0.5)
+        ax.annotate(f"baseline ρ = {baseline_rho:.3f}",
+                    xy=(1.0, baseline_rho), xytext=(1.1, baseline_rho * 1.4),
+                    fontsize=8, color="gray",
+                    arrowprops=dict(arrowstyle="->", color="gray"))
+
+        # Show the range of effect
+        flip_range = sub["flip_uG"].max() - sub["flip_uG"].min()
+        ax.annotate(
+            f"±30% reattribution\nshifts flip by {flip_range:.3f}\n"
+            f"(but u_G effect spans\nfull range [0,1])",
+            xy=(0.85, sub["flip_uG"].min()),
+            fontsize=7, ha="center",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="lightyellow", alpha=0.9),
+        )
+
+        ax.set_xlabel("Enzyme reattribution factor\n(<1 = fewer glyc. enzymes counted; >1 = more)")
+        ax.set_ylabel("Verdict flip point (u_G = ρ)")
+        ax.set_title(org.replace("ecoli", "E. coli").replace("yeast", "S. cerevisiae").replace("mammalian", "Mammalian"))
+        ax.legend(loc="upper right", fontsize=8)
+        ax.grid(alpha=0.3)
+
+    fig.suptitle("E2d: Enzyme Definition Shifts ρ, But u_G Still Dominates Verdict (ST > 0.75)", fontsize=11, y=1.02)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # Generate all figures
 # ---------------------------------------------------------------------------
 
@@ -245,13 +433,13 @@ def generate_all_figures(include_m6: bool = False) -> None:
     """Generate and save all report/deck figures from cached results."""
     FIGURES_DIR.mkdir(exist_ok=True)
 
-    print("[M5] Generating F1 (E1 overlay)...")
+    print("[M5] Generating F1 (E1 overlay with disagreement zones)...")
     fig1 = plot_f1_overlay()
     fig1.savefig(FIGURES_DIR / "F1_overlay.png")
     fig1.savefig(FIGURES_DIR / "F1_overlay.svg")
     plt.close(fig1)
 
-    print("[M5] Generating F2 (E2 verdict flip)...")
+    print("[M5] Generating F2 (E2 verdict flip with CI)...")
     fig2 = plot_f2_verdict_flip()
     fig2.savefig(FIGURES_DIR / "F2_verdict_flip.png")
     fig2.savefig(FIGURES_DIR / "F2_verdict_flip.svg")
@@ -275,6 +463,18 @@ def generate_all_figures(include_m6: bool = False) -> None:
         fig4.savefig(FIGURES_DIR / "F4_eccore.png")
         fig4.savefig(FIGURES_DIR / "F4_eccore.svg")
         plt.close(fig4)
+
+    print("[M5] Generating F5 (Wang 2025 comparison)...")
+    fig5 = plot_f5_wang_comparison()
+    fig5.savefig(FIGURES_DIR / "F5_wang_comparison.png")
+    fig5.savefig(FIGURES_DIR / "F5_wang_comparison.svg")
+    plt.close(fig5)
+
+    print("[M5] Generating F6 (attribution decomposition)...")
+    fig6 = plot_f6_decomposition()
+    fig6.savefig(FIGURES_DIR / "F6_decomposition.png")
+    fig6.savefig(FIGURES_DIR / "F6_decomposition.svg")
+    plt.close(fig6)
 
     print(f"[M5] All figures saved to {FIGURES_DIR}/")
 

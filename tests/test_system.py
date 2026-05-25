@@ -51,6 +51,9 @@ class TestPipelineExecution:
             "e1_overlay.csv",
             "e2_capacity_vs_realized.csv",
             "e2b_accounting.csv",
+            "e2c_uncertainty.csv",
+            "e2d_decomposition.csv",
+            "wang_comparison.csv",
             "sobol_margin.csv",
             "sobol_gstar.csv",
             "morris_margin.csv",
@@ -73,6 +76,8 @@ class TestPipelineExecution:
             "F2_verdict_flip.png",
             "F3_sobol_tornado.png",
             "F3b_morris_scatter.png",
+            "F5_wang_comparison.png",
+            "F6_decomposition.png",
         ]
         for f in expected_figures:
             assert (figures_dir / f).exists(), f"Missing figure: {f}"
@@ -130,6 +135,22 @@ class TestCrossModuleConsistency:
             assert abs(flip - rho) < 0.02, (
                 f"{org_name}: flip u_G ({flip:.4f}) should ≈ ρ ({rho:.4f})"
             )
+
+    def test_e2c_uncertainty_valid(self):
+        """E2c uncertainty CSV should have valid CI bounds for all organisms."""
+        ci = pd.read_csv(PROJECT_ROOT / "results" / "e2c_uncertainty.csv")
+        assert len(ci) == 3
+        for _, row in ci.iterrows():
+            assert row["ci_5"] < row["ci_95"]
+            assert row["n_valid"] > 100  # most bootstraps should succeed
+
+    def test_e2d_decomposition_consistent(self):
+        """E2d decomposition should show flip ≈ ρ across all reattribution levels."""
+        df = pd.read_csv(PROJECT_ROOT / "results" / "e2d_decomposition.csv")
+        valid = df.dropna(subset=["flip_uG"])
+        assert len(valid) > 0
+        for _, row in valid.iterrows():
+            assert abs(row["flip_uG"] - row["rho"]) < 0.02
 
     def test_sobol_morris_top_param_agreement(self):
         """Sobol and Morris should agree on the top parameter."""

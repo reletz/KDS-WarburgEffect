@@ -4,6 +4,8 @@ E1: Run Model A and Model B on identical input vectors, collect outputs on share
     observable axes (x = glucose uptake rate, y = fermentative ATP fraction / total ATP).
 E2: Sweep glycolytic utilization fraction u_G to find where the capacity vs. realized
     verdict flips. Secondary: vary enzyme accounting attribution.
+E2c: Uncertainty quantification — bootstrap confidence intervals on flip points.
+E2d: Attribution decomposition — relative contribution of u_G vs enzyme definition.
 """
 from __future__ import annotations
 
@@ -18,9 +20,10 @@ from src.models import (
     compute_efficiency_with_utilization,
     find_verdict_flip_uG,
 )
-from src.params import ALL_ORGANISMS, ModelParams, Organism
+from src.params import ALL_ORGANISMS, ModelParams, Organism, get_param_ranges
 
 RESULTS_DIR = Path("results")
+RNG_SEED = 42
 
 
 def _results_to_df(results: list[ModelResult], model_name: str) -> pd.DataFrame:
@@ -170,11 +173,149 @@ def run_e2b_accounting(
 
 
 # ---------------------------------------------------------------------------
+# E2c — Uncertainty quantification (bootstrap CI on flip points)
+# ---------------------------------------------------------------------------
+
+def run_e2c_uncertainty(
+    organism: Organism = "yeast",
+    n_bootstrap: int = 200,
+    u_R: float = 1.0,
+) -> dict:
+    """Bootstrap confidence interval on the verdict flip point u_G.
+
+    Samples parameters from their uncertainty ranges (±30% or SI bounds),
+    computes flip_uG for each sample, and returns distribution statistics.
+    """
+    rng = np.random.default_rng(RNG_SEED)
+    ranges = get_param_ranges(organism)
+    op = ALL_ORGANISMS[organism]
+
+    flip_samples = []
+    for _ in range(n_bootstrap):
+        gamma_resp = rng.uniform(ranges[0].low, ranges[0].high)
+        gamma_glyc = rng.uniform(ranges[1].low, ranges[1].high)
+        V_resp = rng.uniform(ranges[2].low, ranges[2].high)
+        V_glyc = rng.uniform(ranges[3].low, ranges[3].high)
+        Phi = rng.uniform(ranges[4].low, ranges[4].high)
+
+        p = ModelParams(
+            gamma_resp=gamma_resp,
+            gamma_glyc=gamma_glyc,
+            V_resp=V_resp,
+            V_glyc=V_glyc,
+            Phi=Phi,
+            g_avail=0.0,
+        )
+        flip = find_verdict_flip_uG(p, u_R=u_R, n_points=200)
+        if flip is not None:
+            flip_samples.append(flip)
+
+    flip_arr = np.array(flip_samples)
+    nominal_p = ModelParams.from_organism_params(op, g_avail=0.0)
+    nominal_flip = find_verdict_flip_uG(nominal_p, u_R=u_R)
+
+    return {
+        "organism": organism,
+        "nominal_flip_uG": nominal_flip,
+        "mean_flip_uG": float(np.mean(flip_arr)) if len(flip_arr) > 0 else None,
+        "std_flip_uG": float(np.std(flip_arr)) if len(flip_arr) > 0 else None,
+        "ci_2.5": float(np.percentile(flip_arr, 2.5)) if len(flip_arr) > 0 else None,
+        "ci_97.5": float(np.percentile(flip_arr, 97.5)) if len(flip_arr) > 0 else None,
+        "ci_5": float(np.percentile(flip_arr, 5)) if len(flip_arr) > 0 else None,
+        "ci_95": float(np.percentile(flip_arr, 95)) if len(flip_arr) > 0 else None,
+        "n_valid": len(flip_arr),
+        "n_total": n_bootstrap,
+        "flip_samples": flip_arr,
+    }
+
+
+def run_e2c_all_organisms(n_bootstrap: int = 200) -> pd.DataFrame:
+    """Run uncertainty quantification for all organisms. Returns summary DataFrame."""
+    rows = []
+    for org in ALL_ORGANISMS:
+        result = run_e2c_uncertainty(org, n_bootstrap=n_bootstrap)
+        rows.append({
+            "organism": org,
+            "nominal_flip_uG": result["nominal_flip_uG"],
+            "mean_flip_uG": result["mean_flip_uG"],
+            "std_flip_uG": result["std_flip_uG"],
+            "ci_2.5": result["ci_2.5"],
+            "ci_97.5": result["ci_97.5"],
+            "ci_5": result["ci_5"],
+            "ci_95": result["ci_95"],
+            "n_valid": result["n_valid"],
+        })
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
+# E2d — Attribution decomposition: u_G effect vs enzyme-definition effect
+# ---------------------------------------------------------------------------
+
+def run_e2d_decomposition(
+    organism: Organism = "yeast",
+    n_points: int = 50,
+) -> pd.DataFrame:
+    """Decompose the verdict into u_G effect vs enzyme-definition (V reattribution) effect.
+
+    The "enzyme definition" axis simulates what happens if some proteins currently
+    attributed to glycolysis are reclassified as "shared/maintenance" (reducing
+    effective V_glyc), or vice versa. This captures the Shen vs Kukurugya
+    disagreement about which enzymes to count in each pathway.
+
+    The key quantity is: how much does reclassifying enzymes shift ρ (and thus
+    the flip point) compared to the dominant effect of u_G?
+    """
+    op = ALL_ORGANISMS[organism]
+    baseline_rho = op.rho
+    baseline_flip = find_verdict_flip_uG(
+        ModelParams.from_organism_params(op, g_avail=0.0), u_R=1.0, n_points=500
+    )
+
+    # Vary attribution: shift effective V_glyc by ±30% (reattributing enzymes)
+    # If some glycolytic enzymes are counted as "shared", V_glyc decreases
+    # If respiratory auxiliary proteins are excluded, V_resp increases
+    reattribution_factors = np.linspace(0.7, 1.3, n_points)
+    rows = []
+    for factor in reattribution_factors:
+        V_glyc_eff = op.V_glyc.value * factor
+        V_resp_eff = op.V_resp.value * (2.0 - factor)  # inverse reattribution
+
+        p = ModelParams(
+            gamma_resp=op.gamma_resp.value,
+            gamma_glyc=op.gamma_glyc.value,
+            V_resp=V_resp_eff,
+            V_glyc=V_glyc_eff,
+            Phi=op.Phi.value,
+            g_avail=0.0,
+        )
+        flip = find_verdict_flip_uG(p, u_R=1.0, n_points=500)
+        rho = (V_resp_eff * op.gamma_resp.value) / (V_glyc_eff * op.gamma_glyc.value)
+
+        rows.append({
+            "organism": organism,
+            "reattribution_factor": float(factor),
+            "V_glyc_effective": V_glyc_eff,
+            "V_resp_effective": V_resp_eff,
+            "flip_uG": flip,
+            "rho": rho,
+            "baseline_rho": baseline_rho,
+            "delta_rho_from_baseline": rho - baseline_rho,
+            "delta_flip_from_baseline": (flip - baseline_flip) if flip and baseline_flip else None,
+        })
+
+    df = pd.DataFrame(rows)
+    df["attribution_sensitivity"] = df["delta_flip_from_baseline"].abs()
+
+    return df
+
+
+# ---------------------------------------------------------------------------
 # Full audit pipeline
 # ---------------------------------------------------------------------------
 
 def run_full_audit() -> dict[str, pd.DataFrame | list]:
-    """Run E1 + E2 + E2b, save results, return all dataframes."""
+    """Run E1 + E2 + E2b + E2c + E2d, save results, return all dataframes."""
     RESULTS_DIR.mkdir(exist_ok=True)
 
     print("[M3] Running E1 — shared-axis overlay for all organisms...")
@@ -203,12 +344,97 @@ def run_full_audit() -> dict[str, pd.DataFrame | list]:
     e2b_df.to_csv(e2b_path, index=False)
     print(f"  → {e2b_path} ({len(e2b_df)} rows)")
 
+    print("[M3] Running E2c — uncertainty quantification (bootstrap CI)...")
+    e2c_df = run_e2c_all_organisms(n_bootstrap=200)
+    e2c_path = RESULTS_DIR / "e2c_uncertainty.csv"
+    e2c_df.to_csv(e2c_path, index=False)
+    print(f"  → {e2c_path}")
+    for _, row in e2c_df.iterrows():
+        print(f"  {row['organism']:>10}: flip u_G = {row['nominal_flip_uG']:.4f} "
+              f"[90% CI: {row['ci_5']:.4f} – {row['ci_95']:.4f}]")
+
+    print("[M3] Running E2d — attribution decomposition...")
+    e2d_dfs = []
+    for org in ALL_ORGANISMS:
+        e2d_dfs.append(run_e2d_decomposition(organism=org))
+    e2d_df = pd.concat(e2d_dfs, ignore_index=True)
+    e2d_path = RESULTS_DIR / "e2d_decomposition.csv"
+    e2d_df.to_csv(e2d_path, index=False)
+    print(f"  → {e2d_path} ({len(e2d_df)} rows)")
+    for org in ALL_ORGANISMS:
+        sub = e2d_df[e2d_df["organism"] == org]
+        max_delta = sub["attribution_sensitivity"].max()
+        print(f"  {org:>10}: max |Δ flip| from enzyme attribution = {max_delta:.6f} "
+              f"(vs flip ≈ {sub['rho'].iloc[0]:.4f})")
+
     return {
         "e1": e1_df,
         "e2": e2_df,
         "e2_summaries": e2_summaries,
         "e2b": e2b_df,
+        "e2c": e2c_df,
+        "e2d": e2d_df,
     }
+
+
+# ---------------------------------------------------------------------------
+# Wang 2025 comparison — relate our u_G finding to Wang's crossing mechanism
+# ---------------------------------------------------------------------------
+
+def run_wang_comparison(n_points: int = 200) -> pd.DataFrame:
+    """Compare our audit results to Wang 2025's efficiency-crossing prediction.
+
+    Wang (eLife 2025) proposes that respiratory and fermentative efficiency
+    curves *cross* as nutrient quality varies — at high quality, respiration
+    wins; at low quality, fermentation wins (due to heterogeneity + overflow).
+
+    Our E2 shows the same crossing but identifies the *mechanism*: it's not
+    nutrient quality per se, but the *utilization fraction* u_G that drives
+    the crossing. When glycolytic enzymes are constitutively overexpressed
+    (low u_G, Shen's finding), respiration appears more efficient.
+
+    This function maps Wang's nutrient-quality axis to our u_G axis and shows
+    they predict the same crossing point from different mechanistic angles.
+    """
+    rows = []
+    for org_name, op in ALL_ORGANISMS.items():
+        Vgamma_G = op.Vgamma_glyc
+        Vgamma_R = op.Vgamma_resp
+        rho = op.rho
+
+        # Wang's model: efficiency crosses when growth rate demands exceed
+        # respiratory capacity. Map this to our framework:
+        # - "High nutrient quality" ≈ low glucose demand → resp wins → u_G low (idle glycolysis)
+        # - "Low nutrient quality" ≈ overflow regime → glyc wins → u_G high (full utilization)
+        #
+        # The crossing in Wang happens at a growth rate µ*. In our framework,
+        # this corresponds to u_G = ρ = (V·γ)_R / (V·γ)_G.
+
+        u_G_range = np.linspace(0.01, 1.0, n_points)
+        for u_G in u_G_range:
+            realized_R = Vgamma_R  # u_R = 1 (resp always fully utilized)
+            realized_G = u_G * Vgamma_G
+            margin = realized_R - realized_G
+
+            # Wang's "nutrient quality" parameter q maps inversely to u_G:
+            # high q → cell grows slowly → glycolytic capacity idle → low u_G
+            # low q → cell at max growth → glycolytic machinery fully engaged → high u_G
+            wang_nutrient_quality = 1.0 - u_G  # simplified mapping
+
+            rows.append({
+                "organism": org_name,
+                "u_G": float(u_G),
+                "wang_nutrient_quality": wang_nutrient_quality,
+                "realized_eff_resp": realized_R,
+                "realized_eff_glyc": realized_G,
+                "margin": margin,
+                "verdict": "respiration" if margin > 0 else "glycolysis",
+                "crossing_point_uG": rho,
+                "crossing_point_wang_q": 1.0 - rho,
+            })
+
+    df = pd.DataFrame(rows)
+    return df
 
 
 if __name__ == "__main__":

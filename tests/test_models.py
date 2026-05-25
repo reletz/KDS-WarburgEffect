@@ -352,6 +352,50 @@ class TestAudit:
         assert "membrane_frac" in df.columns
         assert "flip_uG" in df.columns
 
+    def test_e2c_uncertainty_has_ci(self):
+        """Uncertainty quantification should produce valid confidence intervals."""
+        from src.audit import run_e2c_uncertainty
+        result = run_e2c_uncertainty("yeast", n_bootstrap=50)
+        assert result["n_valid"] > 0
+        assert result["ci_5"] is not None
+        assert result["ci_95"] is not None
+        assert result["ci_5"] < result["ci_95"]
+        assert result["ci_5"] < result["nominal_flip_uG"] < result["ci_95"]
+
+    def test_e2c_ci_covers_nominal(self):
+        """90% CI should contain the nominal flip point for all organisms."""
+        from src.audit import run_e2c_uncertainty
+        for org in ALL_ORGANISMS:
+            result = run_e2c_uncertainty(org, n_bootstrap=50)
+            assert result["ci_5"] <= result["nominal_flip_uG"] <= result["ci_95"], (
+                f"{org}: nominal {result['nominal_flip_uG']:.4f} outside "
+                f"CI [{result['ci_5']:.4f}, {result['ci_95']:.4f}]"
+            )
+
+    def test_e2d_decomposition_flip_tracks_rho(self):
+        """In decomposition, flip_uG should always approximately equal ρ."""
+        from src.audit import run_e2d_decomposition
+        df = run_e2d_decomposition("yeast", n_points=10)
+        valid = df.dropna(subset=["flip_uG"])
+        assert len(valid) > 0
+        for _, row in valid.iterrows():
+            assert abs(row["flip_uG"] - row["rho"]) < 0.02
+
+    def test_wang_comparison_crossing(self):
+        """Wang comparison should show crossing at ρ for all organisms."""
+        from src.audit import run_wang_comparison
+        df = run_wang_comparison(n_points=50)
+        for org in df["organism"].unique():
+            sub = df[df["organism"] == org]
+            assert sub["crossing_point_uG"].iloc[0] > 0
+            assert sub["crossing_point_uG"].iloc[0] < 1
+            margins = sub["margin"].values
+            # At low u_G (glycolysis idle) → resp wins → margin > 0
+            # At high u_G (full capacity) → glyc wins → margin < 0
+            assert margins[0] > 0  # u_G=0.01 → glycolysis idle → resp wins
+            assert margins[-1] < 0  # u_G=1.0 → full capacity → glyc wins
+            assert any(margins > 0) and any(margins < 0)
+
 
 # ===========================================================================
 # UNIT TESTS — M4: Identifiability
