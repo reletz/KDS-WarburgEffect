@@ -50,12 +50,26 @@ def main() -> None:
     e3_results = run_e3()
     print()
 
+    # --- M6: ecCore validation (stretch) ---
+    m6_results = None
+    if args.stretch:
+        print("=" * 70)
+        print("[M6] ecCore enzyme-constrained FBA validation (STRETCH)")
+        print("=" * 70)
+        try:
+            from src.eccore_validation import run_m6
+            m6_results = run_m6()
+        except ImportError as e:
+            print(f"  SKIPPED: {e}")
+            print("  Install COBRApy to enable: uv pip install cobra")
+        print()
+
     # --- M5: Visualization ---
     print("=" * 70)
     print("[M5] Generating figures")
     print("=" * 70)
     from src.viz import generate_all_figures
-    generate_all_figures()
+    generate_all_figures(include_m6=m6_results is not None)
     print()
 
     # --- Summary ---

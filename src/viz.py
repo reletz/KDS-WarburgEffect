@@ -182,10 +182,66 @@ def plot_f3_morris_scatter(df: pd.DataFrame | None = None) -> plt.Figure:
 
 
 # ---------------------------------------------------------------------------
+# F4 — M6 ecCore validation (stretch)
+# ---------------------------------------------------------------------------
+
+def plot_f4_eccore(
+    df_phi: pd.DataFrame | None = None,
+    df_glc: pd.DataFrame | None = None,
+) -> plt.Figure:
+    """Plot M6: enzyme-constrained FBA showing overflow metabolism onset."""
+    _setup_style()
+
+    if df_phi is None:
+        df_phi = pd.read_csv(RESULTS_DIR / "m6_phi_sweep.csv")
+    if df_glc is None:
+        df_glc = pd.read_csv(RESULTS_DIR / "m6_glucose_sweep.csv")
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.5))
+
+    # Left: Φ sweep — acetate overflow vs proteome budget
+    opt_phi = df_phi[df_phi["status"] == "optimal"]
+    ax1.plot(opt_phi["Phi"], opt_phi["growth_rate"], color=C_MODEL_A, lw=2, label="Growth rate")
+    ax1_twin = ax1.twinx()
+    ax1_twin.plot(opt_phi["Phi"], opt_phi["acetate_secretion"], color=C_GLYC, lw=2, ls="--", label="Acetate secretion")
+    ax1_twin.fill_between(opt_phi["Phi"], 0, opt_phi["acetate_secretion"],
+                          where=opt_phi["acetate_secretion"] > 0.1,
+                          alpha=0.15, color=C_GLYC)
+    ax1.set_xlabel("Proteome budget Φ (kDa·mmol/gDW/h)")
+    ax1.set_ylabel("Growth rate (1/h)", color=C_MODEL_A)
+    ax1_twin.set_ylabel("Acetate secretion (mmol/gDW/h)", color=C_GLYC)
+    ax1.set_title("Φ-Sweep: Overflow Onset Under Proteome Constraint")
+    ax1.grid(alpha=0.3)
+    lines1 = ax1.get_lines() + ax1_twin.get_lines()
+    labels1 = [l.get_label() for l in lines1]
+    ax1.legend(lines1, labels1, loc="center right", fontsize=8)
+
+    # Right: Glucose sweep at tight Φ — fermentation fraction vs glucose
+    opt_glc = df_glc[df_glc["status"] == "optimal"]
+    ax2.plot(opt_glc["glucose_uptake"], opt_glc["frac_fermentative"], color=C_GLYC, lw=2, label="Ferm. fraction")
+    ax2.fill_between(opt_glc["glucose_uptake"], 0, opt_glc["frac_fermentative"], alpha=0.15, color=C_GLYC)
+    ax2_twin = ax2.twinx()
+    ax2_twin.plot(opt_glc["glucose_uptake"], opt_glc["growth_rate"], color=C_MODEL_A, lw=2, ls="--", label="Growth rate")
+    ax2.set_xlabel("Glucose uptake (mmol/gDW/h)")
+    ax2.set_ylabel("Fermentative carbon fraction", color=C_GLYC)
+    ax2_twin.set_ylabel("Growth rate (1/h)", color=C_MODEL_A)
+    ax2.set_title(f"Glucose Sweep at Tight Φ = {opt_glc['Phi'].iloc[0]:.0f}")
+    ax2.set_ylim(-0.05, 1.05)
+    ax2.grid(alpha=0.3)
+    lines2 = ax2.get_lines() + ax2_twin.get_lines()
+    labels2 = [l.get_label() for l in lines2]
+    ax2.legend(lines2, labels2, loc="upper left", fontsize=8)
+
+    fig.suptitle("M6 Validation: ecCore Enzyme-Constrained FBA Confirms Overflow Transition", fontsize=12, y=1.02)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # Generate all figures
 # ---------------------------------------------------------------------------
 
-def generate_all_figures() -> None:
+def generate_all_figures(include_m6: bool = False) -> None:
     """Generate and save all report/deck figures from cached results."""
     FIGURES_DIR.mkdir(exist_ok=True)
 
@@ -212,6 +268,13 @@ def generate_all_figures() -> None:
     fig3b.savefig(FIGURES_DIR / "F3b_morris_scatter.png")
     fig3b.savefig(FIGURES_DIR / "F3b_morris_scatter.svg")
     plt.close(fig3b)
+
+    if include_m6:
+        print("[M5] Generating F4 (M6 ecCore validation)...")
+        fig4 = plot_f4_eccore()
+        fig4.savefig(FIGURES_DIR / "F4_eccore.png")
+        fig4.savefig(FIGURES_DIR / "F4_eccore.svg")
+        plt.close(fig4)
 
     print(f"[M5] All figures saved to {FIGURES_DIR}/")
 
