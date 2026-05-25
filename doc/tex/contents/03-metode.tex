@@ -1,0 +1,108 @@
+\section{Metode}
+
+\subsection{Formulasi Model A (LP 2-Sektor, Gaya Shen)}
+
+Model A merepresentasikan sel sebagai pengoptimal alokasi proteom dua sektor.
+Variabel keputusan: fraksi proteom glikolitik $\phi_G$, fraksi respiratorik
+$\phi_R$, dan fluks serapan glukosa per sektor $J_{\text{glc},i}$.
+
+Fungsi tujuan:
+\begin{equation}
+    \max \; J_\text{ATP} = \gamma_G \cdot J_{\text{glc},G} + \gamma_R \cdot J_{\text{glc},R}
+    \label{eq:obj}
+\end{equation}
+
+dengan kendala:
+\begin{align}
+    J_{\text{glc},i} &\leq V_i \cdot \phi_i, \quad i \in \{G, R\} \label{eq:cap} \\
+    \phi_G + \phi_R &\leq \Phi \label{eq:prot} \\
+    J_{\text{glc},G} + J_{\text{glc},R} &\leq g_\text{avail} \label{eq:glc} \\
+    \phi_G, \phi_R, J_{\text{glc},i} &\geq 0 \label{eq:nn}
+\end{align}
+
+Persamaan (\ref{eq:cap}) membatasi fluks glukosa oleh kapasitas enzim,
+(\ref{eq:prot}) adalah anggaran proteom, dan (\ref{eq:glc}) adalah
+ketersediaan glukosa --- knob utama (bukan O$_2$, karena efek Warburg
+terjadi saat O$_2$ tersedia). Ini merupakan \textit{linear program} (LP)
+yang diselesaikan menggunakan \texttt{scipy.optimize.linprog} dengan
+backend HiGHS.
+
+\subsection{Formulasi Model B (5-Parameter Kukurugya)}
+
+Model B memaksimalkan $J_\text{ATP}$ yang sama terhadap kendala
+(\ref{eq:prot})--(\ref{eq:nn}), namun cukup kecil untuk memiliki
+\textbf{solusi analitik titik-sudut}. Tiga kandidat optimum:
+
+\begin{itemize}
+    \item \textbf{Respirasi murni}: $\phi_R = \min(\Phi, g/V_R)$, $\phi_G=0$
+    \item \textbf{Glikolisis murni}: $\phi_G = \min(\Phi, g/V_G)$, $\phi_R=0$
+    \item \textbf{Campuran}: kedua kendala mengikat $\Rightarrow$ sistem $2\times 2$
+\end{itemize}
+
+Lima parameter ($\gamma_R$, $\gamma_G$, $V_R$, $V_G$, $\Phi$) diambil
+dari Tabel~1 dan SI Kukurugya \cite{kukurugya2024} untuk tiga organisme:
+\textit{E.\ coli}, \textit{S.\ cerevisiae}, dan sel mamalia.
+
+\subsection{Antarmuka Bersama}
+
+Kedua model menerima \texttt{ModelParams} yang sama dan mengembalikan
+\texttt{ModelResult} yang sama (fenotipe, $J_\text{ATP}$, fraksi
+fermentatif, rasio efisiensi). Ini memastikan perbandingan pada
+pijakan yang setara.
+
+\subsection{E1: Overlay Sumbu-Bersama}
+
+Kedua model dijalankan pada grid glukosa identik ($g_\text{avail}$ dari
+$10^{-6}$ hingga $2{,}5 \cdot V_G \cdot \Phi$, 300 titik) per organisme.
+Keluaran diplot pada sumbu bersama: sumbu-x = $g_\text{avail}$, sumbu-y =
+fraksi fluks fermentatif.
+
+\subsection{E2: Kapasitas versus Realisasi}
+
+Eksperimen inti. Definisikan fraksi pemanfaatan kapasitas $u_i \in (0, 1]$
+per sektor (1 = operasi di V\textsubscript{max}; $<1$ = ada enzim idle).
+Dua efisiensi dihitung pada parameter yang sama:
+
+\begin{align}
+    \text{Kapasitas:} &\quad (V \cdot \gamma)_i \quad \text{(gaya Kukurugya, } u=1\text{)} \label{eq:cap_eff} \\
+    \text{Terealisasi:} &\quad u_i \cdot (V \cdot \gamma)_i \quad \text{(gaya Shen)} \label{eq:real_eff}
+\end{align}
+
+Margin efisiensi didefinisikan sebagai:
+\begin{equation}
+    m = u_R \cdot (V \cdot \gamma)_R - u_G \cdot (V \cdot \gamma)_G
+    \label{eq:margin}
+\end{equation}
+
+Verdict membalik saat $m = 0$, yaitu pada $u_G = \rho \equiv (V\!\cdot\!\gamma)_R / (V\!\cdot\!\gamma)_G$.
+Kami menyapu $u_G$ dari 1{,}0 ke 0{,}01 (500 titik) dengan $u_R = 1$.
+
+\textbf{Kuantifikasi ketidakpastian (E2c):} Bootstrap 200 iterasi,
+menyampel parameter dari rentang $\pm 30\%$ nilai sentral, menghitung
+distribusi titik-balik, dan melaporkan 90\% CI.
+
+\textbf{Dekomposisi atribusi (E2d):} Variasi $\pm 30\%$ pada $V_G$ dan
+$V_R$ (menyimulasikan ``enzim mana yang dihitung'') untuk mengkuantifikasi
+kontribusi relatif definisi enzim terhadap efek $u_G$.
+
+\subsection{E3: Identifiabilitas (Sobol + Morris)}
+
+Analisis sensitivitas global dengan keluaran \textbf{kontinu}: margin $m$
+dari (\ref{eq:margin}) dan ambang glukosa kritis $g^* = V_R \cdot \Phi$.
+Distribusi input: 6 parameter ($\gamma_R$, $\gamma_G$, $V_R$, $V_G$,
+$\Phi$, $u_G$) disampling dari rentang ketidakpastian SI.
+
+\begin{itemize}
+    \item \textbf{Sobol} \cite{salib}: $N=1024$ basis, indeks $S_1$ dan $S_T$ (total-order)
+    \item \textbf{Morris}: $N=512$ trajectories, $\mu^*$ dan $\sigma$
+\end{itemize}
+
+Parameter teratas menurut $S_T$ = pengukuran yang, bila dipastikan,
+paling mengurangi ketidakpastian verdict = eksperimen penuntas.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F1_overlay.png}
+    \caption{Bagan alir arsitektur: M2 (parameter) $\to$ M1 (solver) $\to$ M3 (E1+E2) $\to$ M4 (E3) $\to$ M5 (visualisasi). Pipeline satu-perintah: \texttt{python main.py}.}
+    \label{fig:architecture}
+\end{figure}

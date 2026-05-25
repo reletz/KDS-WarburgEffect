@@ -1,0 +1,121 @@
+\section{Hasil}
+
+\subsection{E1: Overlay Dua Model pada Sumbu Bersama}
+
+Gambar~\ref{fig:e1} menampilkan fraksi fermentatif versus ketersediaan
+glukosa untuk ketiga organisme. Kedua model menghasilkan kurva yang nyaris
+identik: pada glukosa rendah keduanya memprediksi respirasi murni
+(fraksi fermentatif $\approx 0$), dan pada glukosa tinggi keduanya
+memprediksi glikolisis dominan. Zona ketidaksetujuan (perbedaan
+$> 0{,}1$) sangat sempit --- terbatas pada wilayah transisi.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F1_overlay.png}
+    \caption{E1: Overlay kedua model pada sumbu glukosa bersama. Kedua model memprediksi fenotipe yang hampir identik. Area merah muda menandai zona ketidaksetujuan ($|\Delta| > 0{,}1$).}
+    \label{fig:e1}
+\end{figure}
+
+\textbf{Temuan E1:} Kedua model \textit{tidak bertentangan secara struktural}
+pada sumbu observabel bersama. Perbedaan bukan pada ``model mana yang benar'',
+melainkan pada besaran efisiensi yang mereka hitung dari model yang sama.
+
+\subsection{E2: Kapasitas versus Realisasi --- Titik-Balik Verdict}
+
+Gambar~\ref{fig:e2} menunjukkan efisiensi terealisasi kedua jalur sebagai
+fungsi fraksi pemanfaatan glikolitik $u_G$. Pada $u_G = 1$ (kapasitas
+penuh, asumsi Kukurugya), glikolisis menang. Seiring $u_G$ turun
+(enzim glikolitik idle, temuan Shen), respirasi menang.
+
+Titik-balik terjadi tepat di $u_G = \rho$ (rasio kapasitas):
+
+\begin{table}[h]
+\centering
+\caption{Titik-balik verdict $u_G$ dengan interval kepercayaan 90\%.}
+\label{tab:flip}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Organisme} & $\boldsymbol{\rho}$ & \textbf{Flip} $\boldsymbol{u_G}$ & \textbf{90\% CI} \\
+\midrule
+\textit{E.\ coli}     & 0{,}277 & 0{,}277 & [0{,}159, 0{,}479] \\
+\textit{S.\ cerevisiae} & 0{,}240 & 0{,}240 & [0{,}139, 0{,}415] \\
+Mamalia              & 0{,}164 & 0{,}164 & [0{,}094, 0{,}285] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Seluruh interval kepercayaan berada di bawah 1{,}0, mengkonfirmasi bahwa
+pembalikan verdict bersifat robust terhadap ketidakpastian parameter.
+Flip $u_G \approx \rho$ menunjukkan bahwa \textbf{begitu fraksi idle
+glikolitik melebihi rasio kapasitas, verdict membalik} --- persis kondisi
+yang dilaporkan Shen (ekspresi berlebih konstitutif).
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F2_verdict_flip.png}
+    \caption{E2: Efisiensi terealisasi vs.\ $u_G$. Garis merah putus-putus = titik-balik; area abu-abu = 90\% CI dari bootstrap. Hijau = respirasi menang, kuning = glikolisis menang.}
+    \label{fig:e2}
+\end{figure}
+
+\subsection{E2d: Dekomposisi Atribusi Enzim}
+
+Gambar~\ref{fig:decomp} menunjukkan bahwa reatribusi $\pm 30\%$ massa
+enzim antar jalur (``enzim mana yang dihitung'') memang menggeser $\rho$
+dan titik-balik, namun flip selalu mengikuti $\rho$ secara tepat.
+Analisis Sobol mengkonfirmasi bahwa $u_G$ mendominasi ($S_T \approx 0{,}76$--$0{,}78$)
+sementara $V_G$ dan $V_R$ masing-masing hanya berkontribusi $S_T \approx 0{,}12$.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F6_decomposition.png}
+    \caption{E2d: Dekomposisi atribusi. Garis biru = flip $u_G$ terhadap faktor reatribusi enzim; garis merah putus = $\rho$ (selalu mengikuti flip). Efek reatribusi nyata namun sekunder.}
+    \label{fig:decomp}
+\end{figure}
+
+\subsection{E3: Pengukuran Penuntas (Sobol/Morris)}
+
+Gambar~\ref{fig:sobol} menampilkan indeks Sobol total-order ($S_T$)
+untuk keenam parameter pada keluaran margin $m$. Untuk ketiga organisme,
+$u_G$ mendominasi secara konsisten:
+
+\begin{table}[h]
+\centering
+\caption{Indeks Sobol total-order ($S_T$) tiga parameter teratas (keluaran: margin $m$).}
+\label{tab:sobol}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Organisme} & \textbf{Parameter} & $\boldsymbol{S_T}$ & $\boldsymbol{\pm}$ \\
+\midrule
+\textit{E.\ coli}    & $u_G$        & 0{,}756 & 0{,}059 \\
+                      & $\gamma_G$   & 0{,}122 & 0{,}014 \\
+                      & $V_G$        & 0{,}122 & 0{,}014 \\
+\midrule
+\textit{S.\ cerevisiae} & $u_G$     & 0{,}765 & 0{,}059 \\
+                      & $\gamma_G$   & 0{,}124 & 0{,}014 \\
+                      & $V_G$        & 0{,}124 & 0{,}014 \\
+\midrule
+Mamalia               & $u_G$        & 0{,}781 & 0{,}059 \\
+                      & $\gamma_G$   & 0{,}126 & 0{,}014 \\
+                      & $V_G$        & 0{,}126 & 0{,}015 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Morris $\mu^*$ mengkonfirmasi peringkat yang sama (Gambar~\ref{fig:morris}).
+\textbf{Temuan E3:} Pengukuran yang paling mengurangi ketidakpastian
+verdict adalah $u_G$ --- fraksi pemanfaatan kapasitas glikolitik.
+Eksperimentalis yang mengukur $u_G$ in-vivo akan menuntaskan perdebatan.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F3_sobol_tornado.png}
+    \caption{E3: Indeks Sobol total-order ($S_T$) per parameter. $u_G$ mendominasi secara konsisten di ketiga organisme ($S_T > 0{,}75$).}
+    \label{fig:sobol}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F3b_morris_scatter.png}
+    \caption{Pemeriksaan silang Morris: $\mu^*$ (kepentingan) vs.\ $\sigma$ (nonlinearitas). $u_G$ mendominasi, konsisten dengan Sobol.}
+    \label{fig:morris}
+\end{figure}

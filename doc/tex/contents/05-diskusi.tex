@@ -1,0 +1,75 @@
+\section{Diskusi}
+
+\subsection{Interpretasi Biologis}
+
+Temuan audit menunjukkan bahwa Shen dan Kukurugya tidak saling
+bertentangan --- mereka mengukur besaran yang berbeda. Kukurugya mengukur
+\textit{kapasitas maksimal} enzim ($V \cdot \gamma$), sementara Shen
+mengukur \textit{efisiensi terealisasi} ($u \cdot V \cdot \gamma$) dengan
+$u < 1$ karena ekspresi berlebih konstitutif protein glikolitik.
+
+Fenomena ekspresi berlebih ini bukan artefak pengukuran: Shen melaporkan
+bahwa sel mempertahankan protein glikolitik dalam jumlah besar sebagai
+cadangan (``\textit{proteome hedging}'') untuk ketahanan terhadap hipoksia.
+Implikasinya: pada kondisi fisiologis normal, $u_G$ rendah (banyak enzim
+glikolitik idle), sehingga respirasi \textit{terlihat} lebih efisien secara
+terealisasi --- persis temuan Shen. Namun, bila diukur pada kapasitas penuh
+($u_G = 1$), glikolisis memang lebih cepat per protein --- persis temuan
+Kukurugya.
+
+\subsection{Posisi terhadap Wang 2025}
+
+Gambar~\ref{fig:wang} membandingkan kerangka kami dengan Wang secara visual.
+Wang memodelkan penyilangan efisiensi sebagai fungsi kualitas nutrisi $q$
+--- pada $q$ tinggi respirasi menang, pada $q$ rendah fermentasi menang.
+Dalam kerangka kami, variabel yang setara adalah $u_G$: kualitas nutrisi
+tinggi $\leftrightarrow$ sel tumbuh lambat $\leftrightarrow$ $u_G$ rendah
+(kapasitas glikolitik idle).
+
+Kedua kerangka memprediksi titik penyilangan yang sama tetapi dari sudut
+mekanistik yang berbeda. Wang memperkenalkan heterogenitas sel sebagai
+mekanisme pendamaian; kami mengidentifikasi $u_G$ sebagai variabel tunggal
+yang menggerakkan penyilangan tanpa perlu model heterogenitas. Keduanya
+\textbf{komplementer}: Wang menjelaskan \textit{mengapa} $u_G$ bervariasi
+antar-sel (heterogenitas), kami menunjukkan bahwa $u_G$ saja cukup untuk
+menjelaskan perbedaan verdict.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F5_wang_comparison.png}
+    \caption{Perbandingan kerangka: baris atas = sumbu $u_G$ kami, baris bawah = sumbu kualitas nutrisi $q$ Wang. Titik penyilangan sama, mekanisme berbeda.}
+    \label{fig:wang}
+\end{figure}
+
+\subsection{Validasi Mekanistik (M6, Peregangan)}
+
+Sebagai validasi tambahan, kami menambahkan kendala massa-enzim pada model
+\textit{e\_coli\_core} via COBRApy (Gambar~\ref{fig:eccore}). Ketika
+anggaran proteom $\Phi$ diperketat, model FBA menunjukkan onset sekresi
+asetat (metabolisme limpahan) --- secara kualitatif konsisten dengan
+prediksi model mainan bahwa keterbatasan proteom mendorong transisi
+respirasi$\to$fermentasi.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{F4_eccore.png}
+    \caption{M6: FBA berbatas-enzim pada \textit{e\_coli\_core}. Kiri: penyapuan $\Phi$ menunjukkan onset limpahan asetat. Kanan: penyapuan glukosa pada $\Phi$ ketat menunjukkan peningkatan fraksi fermentatif.}
+    \label{fig:eccore}
+\end{figure}
+
+\subsection{Keterbatasan}
+
+Beberapa keterbatasan perlu diakui:
+\begin{enumerate}
+    \item \textbf{Model \textit{coarse-grained}.} Kedua model adalah
+          penyederhanaan dua-sektor; model skala-genom (GECKO, ETFL) akan
+          memberikan resolusi lebih tinggi.
+    \item \textbf{Parameter provisional.} Nilai parameter ditandai
+          PROVISIONAL dan berasal dari ringkasan tabel, bukan pengukuran
+          langsung kami. Verifikasi dari SI asli diperlukan.
+    \item \textbf{Tiga organisme saja.} Audit terbatas pada
+          \textit{E.\ coli}, ragi, dan sel mamalia; generalisasi ke
+          organisme lain belum teruji.
+    \item \textbf{In-silico.} Seluruh temuan bersifat komputasional;
+          validasi eksperimental (pengukuran $u_G$ in-vivo) diperlukan.
+\end{enumerate}

@@ -1,0 +1,74 @@
+% !TEX root = main.tex
+\documentclass[conference]{IEEEtran}
+\input{preamble}
+
+\begin{document}
+
+\title{Audit Komputasi Perselisihan Efisiensi Proteom 2024:\\
+Diagnosis Sumber Perbedaan dan Identifikasi Pengukuran\\Penuntas pada Efek Warburg}
+
+\author{
+\IEEEauthorblockN{Naufarrel Zhafif Abhista\textsuperscript{1},
+Frederiko Eldad Mugiyono\textsuperscript{2},
+Hasri Fayadh Muqaffa\textsuperscript{3},
+I Made Wiweka Putera\textsuperscript{4}}
+\IEEEauthorblockA{
+Program Studi Teknik Informatika,
+Sekolah Teknik Elektro dan Informatika\\
+Institut Teknologi Bandung, Bandung, Indonesia\\
+\textsuperscript{1}13523149@std.stei.itb.ac.id,
+\textsuperscript{2}13523147@std.stei.itb.ac.id,
+\textsuperscript{3}13523156@std.stei.itb.ac.id,
+\textsuperscript{4}13523160@std.stei.itb.ac.id}
+}
+
+\maketitle
+
+% ====================================================================
+\begin{abstract}
+Dua makalah tinjauan sejawat tahun 2024 menyimpulkan hal berlawanan
+tentang efisiensi proteom jalur produksi ATP: Shen dkk.\ (\textit{Nat.\ Chem.\ Biol.})
+melaporkan respirasi beberapa kali lebih efisien per massa protein,
+sementara Kukurugya dkk.\ (\textit{PNAS}) melaporkan glikolisis menghasilkan
+ATP 2--3$\times$ lebih cepat per miligram enzim jalur.
+Wang (\textit{eLife} 2025) telah mendamaikan keduanya dengan model baru,
+namun belum ada yang mengaudit kedua model asli secara kepala-ke-kepala
+untuk mendiagnosis \textit{dari mana} perbedaannya berasal.
+
+Paper ini menyajikan audit komputasi terkendali: kami mengimplementasikan
+ulang model 2-sektor Shen (LP) dan model 5-parameter Kukurugya (analitik)
+dalam satu basis kode dengan antarmuka bersama, menjalankan keduanya pada
+input identik, lalu menambahkan tiga eksperimen diagnostik.
+Hasil menunjukkan bahwa perselisihan bersumber terutama pada
+\textbf{besaran yang diukur} --- kapasitas maksimal $V\!\cdot\!\gamma$
+(Kukurugya) versus efisiensi terealisasi $u \cdot V\!\cdot\!\gamma$ (Shen)
+--- bukan pada struktur model.
+Verdict membalik tepat di $u_G \approx \rho$ (rasio kapasitas)
+untuk ketiga organisme (90\% CI: [0.09, 0.48]).
+Analisis sensitivitas global Sobol mengidentifikasi $u_G$ (fraksi
+pemanfaatan kapasitas glikolitik) sebagai pengukuran penuntas
+(indeks total-order $S_T \approx 0{,}76$--$0{,}78$).
+Temuan ini komplementer terhadap mekanisme penyilangan Wang
+dan menamai eksperimen tunggal yang akan menyelesaikan perdebatan:
+pengukuran $u_G$ in-vivo per organisme.
+\end{abstract}
+
+\begin{IEEEkeywords}
+efek Warburg, efisiensi proteom, pemrograman linear,
+analisis sensitivitas Sobol, metabolisme limpahan,
+alokasi proteom, audit komputasi
+\end{IEEEkeywords}
+
+% ====================================================================
+\input{contents/01-pendahuluan}
+\input{contents/02-kajian-pustaka}
+\input{contents/03-metode}
+\input{contents/04-hasil}
+\input{contents/05-diskusi}
+\input{contents/06-kesimpulan}
+
+% ====================================================================
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

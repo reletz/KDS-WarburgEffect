@@ -1,0 +1,41 @@
+\section{Pendahuluan}
+
+Efek Warburg --- fenomena di mana sel tumbuh-cepat memfermentasi glukosa
+menjadi laktat atau etanol meskipun oksigen tersedia --- merupakan salah
+satu teka-teki terlama dalam biologi sel \cite{warburg1956}.
+Penjelasan yang dominan selama dua dekade terakhir berpusat pada
+\textit{efisiensi proteom}: sel memiliki anggaran protein terbatas, dan
+enzim glikolitik diduga menghasilkan ATP lebih cepat per gram protein
+dibandingkan rantai pernapasan yang besar \cite{basan2015, pfeiffer2001}.
+
+Pada tahun 2024, dua makalah tinjauan-sejawat menyimpulkan hal
+berlawanan. Shen dkk.\ \cite{shen2024} menggunakan fluks metabolik
+$^{13}$C-MFA dan proteomik kuantitatif pada ragi, sel T, dan 60 lini
+sel kanker NCI60, melaporkan bahwa respirasi \textit{beberapa kali lipat
+lebih efisien-proteom} daripada glikolisis. Sebaliknya, Kukurugya dkk.\
+\cite{kukurugya2024} menyajikan model 5-parameter analitik dan data
+eksperimental yang menunjukkan glikolisis menghasilkan ATP $0{,}54\times$
+hingga $3{,}1\times$ lebih cepat per miligram enzim jalur dibandingkan
+respirasi, bergantung pada organisme.
+
+Wang \cite{wang2025} telah mendamaikan keduanya dengan memperkenalkan
+model baru yang menggabungkan alokasi protein dan heterogenitas sel,
+menunjukkan bahwa efisiensi respirasi dan fermentasi \textit{berpotongan}
+menurut kualitas nutrisi. Namun, belum ada yang melakukan
+\textbf{perbandingan kepala-ke-kepala} terhadap kedua model asli untuk
+melokalisasi sumber perbedaan --- apakah perbedaan itu berasal dari
+(i)~besaran yang diukur, (ii)~definisi ``protein jalur'',
+(iii)~nilai parameter, atau (iv)~struktur model --- serta belum ada yang
+menanyakan \textbf{pengukuran tunggal mana yang akan membalikkan kesimpulan}.
+
+Paper ini memberikan tiga kontribusi:
+\begin{enumerate}
+    \item Implementasi ulang kedua model 2024 dalam satu basis kode
+          dengan antarmuka bersama dan gerbang validasi terhadap gambar terbit.
+    \item Tiga eksperimen diagnostik: overlay sumbu-bersama (E1),
+          kapasitas versus realisasi (E2), dan analisis identifiabilitas
+          Sobol/Morris (E3) yang menamai pengukuran penuntas.
+    \item Kuantifikasi ketidakpastian (bootstrap 90\% CI) pada titik-balik
+          verdict, dekomposisi atribusi enzim, dan perbandingan terhadap
+          mekanisme penyilangan Wang~2025.
+\end{enumerate}

@@ -1,0 +1,54 @@
+\section{Kajian Pustaka}
+
+\subsection{Hipotesis Efisiensi Proteom}
+
+Basan dkk.\ \cite{basan2015} menunjukkan bahwa pada \textit{E.\ coli},
+fraksi proteom glikolitik meningkat secara linier dengan laju pertumbuhan,
+mendukung gagasan bahwa sel mengoptimalkan alokasi protein terbatas.
+Pfeiffer dkk.\ \cite{pfeiffer2001} sebelumnya telah memformulasikan
+trade-off hasil-versus-laju ATP: respirasi memberikan hasil tinggi
+($\gamma_R \approx 26$--$32$ mol ATP/mol glukosa) namun lambat per massa
+enzim, sementara glikolisis memberikan hasil rendah ($\gamma_G = 2$)
+namun cepat per protein.
+
+\subsection{Shen dkk.\ 2024}
+
+Shen dkk.\ \cite{shen2024} mendefinisikan efisiensi proteom sebagai
+$\varepsilon = J_\text{ATP} / m_\text{enzim}$ (fluks ATP aktual per massa
+enzim \textit{terukur in-vivo}). Dengan data proteomik dan $^{13}$C-MFA
+pada lima sistem biologis, mereka melaporkan $\varepsilon_R > \varepsilon_G$
+secara konsisten. Temuan kunci: protein glikolitik diekspresikan
+\textit{berlebih} (konstitutif, banyak yang idle), sehingga efisiensi
+terealisasinya rendah --- fenomena yang mereka sebut ``\textit{proteome hedging}''.
+
+\subsection{Kukurugya dkk.\ 2024}
+
+Kukurugya dkk.\ \cite{kukurugya2024} mendefinisikan efisiensi proteom
+sebagai \textit{kapasitas}: $V \cdot \gamma$, dengan $V$ = aktivitas
+spesifik maksimal (V\textsubscript{max}) per miligram protein jalur.
+Model 5-parameter mereka ($\gamma_R$, $\gamma_G$, $V_R$, $V_G$, $\Phi$)
+memiliki solusi analitik unik tanpa parameter bebas. Mereka melaporkan
+$V_G \cdot \gamma_G > V_R \cdot \gamma_R$ untuk ragi dan sel mamalia
+(glikolisis lebih cepat per protein pada kapasitas penuh).
+
+\subsection{Wang 2025}
+
+Wang \cite{wang2025} mendamaikan keduanya dengan model alokasi-protein
+baru yang memasukkan heterogenitas sel dan kualitas nutrisi. Model ini
+menunjukkan bahwa kurva efisiensi respirasi dan fermentasi
+\textit{berpotongan}: pada nutrisi berkualitas tinggi respirasi menang,
+pada nutrisi rendah fermentasi menang.
+
+\subsection{Kerangka sEnz}
+
+Liu dkk.\ \cite{senz2024} mengembangkan sEnz, kerangka analisis
+sensitivitas untuk model alokasi-protein menggunakan \textit{shadow price}.
+Kami menggunakan pendekatan Sobol/Morris yang lebih sederhana dan
+menerapkannya secara spesifik pada perselisihan Shen--Kukurugya.
+
+\subsection{Posisi Paper Ini}
+
+Wang mendamaikan via model baru; kami \textbf{mengaudit model asli}
+untuk mendiagnosis bahwa keduanya mungkin tidak mengukur besaran
+yang sama. Pendekatan ini komplementer --- diagnosis berbeda dari
+pendamaian --- dan dapat dibandingkan langsung dengan mekanisme Wang.
