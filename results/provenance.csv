@@ -1,0 +1,16 @@
+organism,parameter,value,unit,source_paper,source_location,note
+ecoli,gamma_resp,26.0,mol ATP / mol glucose,kukurugya2024,"Table 1, SI Text S1",Full oxidative phosphorylation; P/O ratio ~2.5 assumed for E. coli
+ecoli,gamma_glyc,2.0,mol ATP / mol glucose,kukurugya2024,Table 1,Substrate-level phosphorylation only (glycolysis to acetate via Pta-AckA)
+ecoli,V_resp,0.0049,µmol glucose · min⁻¹ · mg protein⁻¹,kukurugya2024,SI Table S1,PROVISIONAL — rate-limiting step of respiratory chain per total resp. protein mass
+ecoli,V_glyc,0.23,µmol glucose · min⁻¹ · mg protein⁻¹,kukurugya2024,SI Table S1,PROVISIONAL — glycolytic pathway specific activity
+ecoli,Phi,0.26,dimensionless,kukurugya2024,"SI Table S2, proteomics",PROVISIONAL — fraction of proteome in ATP-generating enzymes
+yeast,gamma_resp,26.0,mol ATP / mol glucose,kukurugya2024,Table 1,Full respiration; P/O ~2.5 for yeast mitochondria
+yeast,gamma_glyc,2.0,mol ATP / mol glucose,kukurugya2024,Table 1,Fermentation to ethanol: net 2 ATP per glucose
+yeast,V_resp,0.0085,µmol glucose · min⁻¹ · mg protein⁻¹,kukurugya2024,SI Table S1,PROVISIONAL — respiratory pathway specific activity
+yeast,V_glyc,0.46,µmol glucose · min⁻¹ · mg protein⁻¹,kukurugya2024,SI Table S1,PROVISIONAL — glycolytic/fermentative specific activity
+yeast,Phi,0.2,dimensionless,kukurugya2024,SI Table S2,PROVISIONAL
+mammalian,gamma_resp,32.0,mol ATP / mol glucose,kukurugya2024,Table 1,"Full oxidative phosphorylation; P/O ~2.5, malate-aspartate shuttle"
+mammalian,gamma_glyc,2.0,mol ATP / mol glucose,kukurugya2024,Table 1,Aerobic glycolysis to lactate: 2 ATP net
+mammalian,V_resp,0.004,µmol glucose · min⁻¹ · mg protein⁻¹,kukurugya2024,SI Table S1,PROVISIONAL — respiratory chain specific activity for mammalian cells
+mammalian,V_glyc,0.39,µmol glucose · min⁻¹ · mg protein⁻¹,kukurugya2024,SI Table S1,PROVISIONAL — glycolytic specific activity
+mammalian,Phi,0.18,dimensionless,kukurugya2024,SI Table S2,PROVISIONAL
