@@ -43,7 +43,7 @@ def _build_salib_problem(organism: Organism, include_uG: bool = True) -> dict:
 def _evaluate_margin(X: np.ndarray, u_R: float = 1.0) -> np.ndarray:
     """Evaluate efficiency margin for each parameter sample row.
 
-    Output: m = u_R·(V·γ)_R − u_G·(V·γ)_G
+    Output: m = u_R·(V·γ)_R - u_G·(V·γ)_G
     Positive → respiration wins on realized basis.
     """
     n = X.shape[0]

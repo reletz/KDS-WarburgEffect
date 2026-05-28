@@ -43,10 +43,7 @@ def _results_to_df(results: list[ModelResult], model_name: str) -> pd.DataFrame:
         })
     return pd.DataFrame(rows)
 
-
-# ---------------------------------------------------------------------------
 # E1 — Shared-axis overlay
-# ---------------------------------------------------------------------------
 
 def run_e1(organism: Organism = "yeast", n_points: int = 300) -> pd.DataFrame:
     """Run both models on identical glucose grid, return combined dataframe."""
@@ -73,10 +70,7 @@ def run_e1_all_organisms(n_points: int = 300) -> pd.DataFrame:
         dfs.append(run_e1(organism=org, n_points=n_points))
     return pd.concat(dfs, ignore_index=True)
 
-
-# ---------------------------------------------------------------------------
 # E2 — Capacity vs. Realized (sweep u_G)
-# ---------------------------------------------------------------------------
 
 def run_e2(
     organism: Organism = "yeast",
@@ -128,10 +122,7 @@ def run_e2_all_organisms(u_R: float = 1.0) -> tuple[pd.DataFrame, list[dict]]:
         summaries.append(summary)
     return pd.concat(dfs, ignore_index=True), summaries
 
-
-# ---------------------------------------------------------------------------
 # E2b — Secondary: enzyme accounting attribution variation
-# ---------------------------------------------------------------------------
 
 def run_e2b_accounting(
     organism: Organism = "yeast",
@@ -172,9 +163,7 @@ def run_e2b_accounting(
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------------------
 # E2c — Uncertainty quantification (bootstrap CI on flip points)
-# ---------------------------------------------------------------------------
 
 def run_e2c_uncertainty(
     organism: Organism = "yeast",
@@ -248,9 +237,7 @@ def run_e2c_all_organisms(n_bootstrap: int = 200) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------------------
 # E2d — Attribution decomposition: u_G effect vs enzyme-definition effect
-# ---------------------------------------------------------------------------
 
 def run_e2d_decomposition(
     organism: Organism = "yeast",
@@ -309,10 +296,7 @@ def run_e2d_decomposition(
 
     return df
 
-
-# ---------------------------------------------------------------------------
 # Full audit pipeline
-# ---------------------------------------------------------------------------
 
 def run_full_audit() -> dict[str, pd.DataFrame | list]:
     """Run E1 + E2 + E2b + E2c + E2d, save results, return all dataframes."""
@@ -377,9 +361,7 @@ def run_full_audit() -> dict[str, pd.DataFrame | list]:
     }
 
 
-# ---------------------------------------------------------------------------
 # Wang 2025 comparison — relate our u_G finding to Wang's crossing mechanism
-# ---------------------------------------------------------------------------
 
 def run_wang_comparison(n_points: int = 200) -> pd.DataFrame:
     """Compare our audit results to Wang 2025's efficiency-crossing prediction.
@@ -437,9 +419,7 @@ def run_wang_comparison(n_points: int = 200) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
 # E4 — Phase diagram: 2D verdict map over (u_G, g_avail)
-# ---------------------------------------------------------------------------
 
 def run_e4_phase_diagram(
     organism: Organism = "yeast",
