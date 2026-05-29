@@ -29,6 +29,16 @@ Pipeline ini mengimplementasikan ulang kedua model dalam satu basis kode, menjal
 
 ## Instalasi
 
+Gunakan `uv` untuk instalasi virtual environment dan dependensi:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
+Atau menggunakan `pip` standar:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
